@@ -23,10 +23,33 @@ Source: CRAN
 Version: 1.1-2
 Hash: c0d56cd15034f395874c870141870c25
 
+Package: RCurl
+Source: CRAN
+Version: 1.95-4.8
+Hash: 79c7d5a8684e44e0e3426d3093aa7d90
+Requires: bitops
+
 Package: Rcpp
 Source: CRAN
 Version: 0.12.7
 Hash: f0ba7322cfb66f1b563462faa9c2b2ab
+
+Package: RgoogleMaps
+Source: CRAN
+Version: 1.4.1
+Hash: 3310ba24c8436b297d1fb60ac4324ff2
+Requires: png
+
+Package: XML
+Source: CRAN
+Version: 3.98-1.4
+Hash: 9f8bc34c3c3d2967c7d25f8945216ffa
+
+Package: acs
+Source: CRAN
+Version: 2.0
+Hash: d356c835968d782919697359b102450c
+Requires: RCurl, XML, plyr, stringr
 
 Package: assertthat
 Source: CRAN
@@ -38,11 +61,22 @@ Source: CRAN
 Version: 0.1-3
 Hash: c590d29e555926af053055e23ee79efb
 
+Package: bitops
+Source: CRAN
+Version: 1.0-6
+Hash: 67d0775189fd0041d95abca618c5c07e
+
 Package: broom
 Source: CRAN
 Version: 0.4.1
 Hash: c90145ada2eac0128487c21ab2ac9c78
 Requires: dplyr, plyr, psych, reshape2, stringr, tidyr
+
+Package: caTools
+Source: CRAN
+Version: 1.17.1
+Hash: 97cb6f6293cd18d17df77a6383cc6763
+Requires: bitops
 
 Package: colorspace
 Source: CRAN
@@ -71,11 +105,23 @@ Source: CRAN
 Version: 0.6.10
 Hash: 87165608ca8aeb0958835c3c5b52b6b7
 
+Package: downloader
+Source: CRAN
+Version: 0.4
+Hash: c99f05ffa816e03ece87b37ea9d4f0ed
+Requires: digest
+
 Package: dplyr
 Source: CRAN
 Version: 0.5.0
 Hash: 03e5e71801c0f49217922e2cd4680f06
 Requires: BH, DBI, R6, Rcpp, assertthat, lazyeval, magrittr, tibble
+
+Package: evaluate
+Source: CRAN
+Version: 0.10
+Hash: c3601a10c987d439e0c63ec635234a76
+Requires: stringr
 
 Package: forcats
 Source: CRAN
@@ -83,27 +129,73 @@ Version: 0.1.1
 Hash: 7f93e560ba45f278e1d66df743747d2a
 Requires: magrittr, tibble
 
+Package: formatR
+Source: CRAN
+Version: 1.4
+Hash: b2a47a2b91737978cf50ba95825a9cd1
+
+Package: gdata
+Source: CRAN
+Version: 2.17.0
+Hash: e7d520c2a9597b303f54499e3bd90644
+Requires: gtools
+
+Package: geosphere
+Source: CRAN
+Version: 1.5-5
+Hash: 6772bef0f3f3aaa58b475479c03ff596
+Requires: sp
+
+Package: ggmap
+Source: CRAN
+Version: 2.6.1
+Hash: 3e5545418aab1ad8e47c218236dd4f0b
+Requires: RgoogleMaps, digest, geosphere, ggplot2, jpeg, mapproj, plyr,
+    png, proto, reshape2, rjson, scales
+
 Package: ggplot2
 Source: CRAN
 Version: 2.1.0
 Hash: 50e297b0191179c39c7dcae0eff72b51
 Requires: digest, gtable, plyr, reshape2, scales
 
+Package: ggthemes
+Source: CRAN
+Version: 3.2.0
+Hash: 44ef6d3a43f207cea8003ed2d69c9c36
+Requires: assertthat, colorspace, ggplot2, scales
+
 Package: git2r
 Source: CRAN
 Version: 0.15.0
 Hash: 92d5a9f3cba5e146b92a76dabbc29fbb
+
+Package: gplots
+Source: CRAN
+Version: 3.0.1
+Hash: b7abe122479c203aa236499b7fc4b816
+Requires: caTools, gdata, gtools
 
 Package: gtable
 Source: CRAN
 Version: 0.2.0
 Hash: cd78381a9d3fea966ac39bd0daaf5554
 
+Package: gtools
+Source: CRAN
+Version: 3.5.0
+Hash: 471b2e2452dfb30fdc1dd6f1b567925a
+
 Package: haven
 Source: CRAN
 Version: 1.0.0
 Hash: 2fee7590629252b68fbfbfa25a9bcc0f
 Requires: BH, Rcpp, hms, readr, tibble
+
+Package: highr
+Source: CRAN
+Version: 0.6
+Hash: aa3d5b7912b5fed4b546ed5cd2a1760b
 
 Package: hms
 Source: CRAN
@@ -134,10 +226,21 @@ Version: 1.2.1
 Hash: 7de1f8f760441881804af7c1ff324340
 Requires: R6, curl, jsonlite, mime, openssl
 
+Package: jpeg
+Source: CRAN
+Version: 0.1-8
+Hash: 189af3df9864c6aa8546033f08ba9358
+
 Package: jsonlite
 Source: CRAN
 Version: 1.1
 Hash: 86d4b85b84421a4815f1bb4872e30ef4
+
+Package: knitr
+Source: CRAN
+Version: 1.14
+Hash: e7b411f5a5512295a260a45683fa0c4a
+Requires: digest, evaluate, formatR, highr, markdown, stringr, yaml
 
 Package: labeling
 Source: CRAN
@@ -171,6 +274,23 @@ Source: CRAN
 Version: 1.5
 Hash: bdc4d48c3135e8f3b399536ddf160df4
 
+Package: mapproj
+Source: CRAN
+Version: 1.2-4
+Hash: e4c4eaf5289ffa74413a9cd71584cb1d
+Requires: maps
+
+Package: maps
+Source: CRAN
+Version: 3.1.1
+Hash: 4a0a1b1764bfe2c41c6fc21790408caf
+
+Package: maptools
+Source: CRAN
+Version: 0.8-39
+Hash: f88d489894305e514eacb380f4cb2008
+Requires: sp
+
 Package: markdown
 Source: CRAN
 Version: 0.7.7
@@ -193,6 +313,17 @@ Source: CRAN
 Version: 0.1.1
 Hash: e85626581f80b1fe6c92a96ec348efc5
 Requires: htmltools, shiny
+
+Package: miscgis
+Source: github
+Version: 0.1.1
+Hash: 00dad215b06417d8fe8fe4224c9e7e76
+Requires: dplyr, leaflet, miniUI, operator.tools, shinydashboard, sp,
+    tigris
+GithubRepo: miscgis
+GithubUsername: tiernanmartin
+GithubRef: master
+GithubSha1: be29ce0be911808c0d4a1609ae3dc739a5349b5c
 
 Package: mnormt
 Source: CRAN
@@ -237,6 +368,11 @@ Source: CRAN
 Version: 0.1-7
 Hash: 421d7d6e0fb4bd885ecbd909b6456b8b
 
+Package: proto
+Source: CRAN
+Version: 0.3-10
+Hash: 05d7ad64db29a39d1b02c4b9f1f4edb2
+
 Package: psych
 Source: CRAN
 Version: 1.6.9
@@ -248,6 +384,11 @@ Source: CRAN
 Version: 0.2.2
 Hash: 14bc8b3a4c61f67866ebfb413f77ff9f
 Requires: BH, Rcpp, dplyr, lazyeval, magrittr
+
+Package: rappdirs
+Source: CRAN
+Version: 0.3.1
+Hash: 7340cfebc77ad7b107a549a8635e64dd
 
 Package: raster
 Source: CRAN
@@ -284,6 +425,31 @@ Source: CRAN
 Version: 0.3-21
 Hash: d34cb398be8b8c4936c8afe99f1cea80
 Requires: sp
+
+Package: rjson
+Source: CRAN
+Version: 0.2.15
+Hash: def074f38d0cff3b597649ee6f976128
+
+Package: rmarkdown
+Source: github
+Version: 1.1.9003
+Hash: 41a4e630995dab88b91a0f5c463619c1
+Requires: base64enc, caTools, evaluate, htmltools, jsonlite, knitr,
+    tibble, yaml
+GithubRepo: rmarkdown
+GithubUsername: rstudio
+GithubRef: master
+GithubSha1: 75c63abc647bddb419547e67aea98298ffc9b873
+
+Package: rprojroot
+Source: github
+Version: 1.0-4
+Hash: 308cbc2abbbf59784e7d26fda93b0e51
+GithubRepo: rprojroot
+GithubUsername: krlmlr
+GithubRef: master
+GithubSha1: e0009ebec4a9cc19ed1eec6468c5178d036b2c00
 
 Package: rstudioapi
 Source: CRAN
@@ -329,6 +495,16 @@ GithubUsername: rstudio
 GithubRef: master
 GithubSha1: 44bf7c5154afe1d054de3386696d888602cf2b5e
 
+Package: shmodules
+Source: github
+Version: 0.0.1
+Hash: 38482eeaa7abde17bb434df9e02f2b82
+Requires: dplyr, ggplot2, htmltools, shiny, shinydashboard
+GithubRepo: shmodules
+GithubUsername: tiernanmartin
+GithubRef: master
+GithubSha1: 67f4f0f6c82c050d01a9f01e7a59446ae42dd038
+
 Package: sourcetools
 Source: CRAN
 Version: 0.1.5
@@ -373,6 +549,28 @@ GithubRepo: tidyverse
 GithubUsername: hadley
 GithubRef: master
 GithubSha1: 6811e51619d78e1bfce5487239dce138e2ef1802
+
+Package: tigris
+Source: CRAN
+Version: 0.3.3
+Hash: ffcab56fa2546f0a153915dfd9138e5f
+Requires: httr, magrittr, maptools, rappdirs, rgdal, rgeos, sp,
+    stringr, uuid
+
+Package: uuid
+Source: CRAN
+Version: 0.1-2
+Hash: 69acbbcf4dcff3a258f94de540214001
+
+Package: webshot
+Source: github
+Version: 0.3.2.9000
+Hash: a8d62a091aaae218a15c0885351b8639
+Requires: magrittr
+GithubRepo: webshot
+GithubUsername: wch
+GithubRef: master
+GithubSha1: d5979a2729e8ef5b9f0a3aad745aeb3376567f03
 
 Package: whisker
 Source: CRAN
