@@ -107,9 +107,10 @@ Seattle's boundary with waterbodies removed.
 
 ```{r misc-sea-land, fig.cap="Seattle without waterbodies"}
 
-if(!file.exists(root_file('1-data/4-interim/sea-lnd-sp.gpkg'))){
-        
 wtr_union_sp <- wtr_sp %>% gUnaryUnion()
+
+if(!file.exists(root_file('1-data/4-interim/sea-lnd-sp.gpkg'))){
+
 
 sea_lnd_sp <- miscgis::spClip(sea_sp,wtr_union_sp)
 
@@ -138,7 +139,7 @@ The Census tracts do not perfectly align with City's official boundary. As noted
 
 ```{r misc-tracts-sea}
 
-if(!exists('tr_sea')){
+if(!exists('tr_sea_sp')){
         
         if(!file.exists(root_file('1-data/4-interim/tr-sea-sp.gpkg'))){
         
@@ -169,19 +170,19 @@ if(!exists('tr_sea')){
         tr %>% 
                 miscgis::spClip(wtr_union_sp) %>% 
                 writeOGR(dsn = root_file('1-data/4-interim/tr-sea-sp.gpkg'),
-                         layer = 'tr_sea',
+                         layer = 'tr_sea_sp',
                          driver = 'GPKG',
                          verbose = FALSE)
 }
         
         
-        tr_sea <- readOGR(dsn = root_file('1-data/4-interim/tr-sea-sp.gpkg'),
-                         layer = 'tr_sea',
+        tr_sea_sp <- readOGR(dsn = root_file('1-data/4-interim/tr-sea-sp.gpkg'),
+                         layer = 'tr_sea_sp',
                          verbose = FALSE,
                          stringsAsFactors = FALSE) %>% spTransform(crs_proj)
 }
 
-myLfltGrey() %>% addPolygons(data = tr_sea,
+myLfltGrey() %>% addPolygons(data = tr_sea_sp,
                              smoothFactor = 0,
                              fillOpacity = .25,
                              fillColor = green,
