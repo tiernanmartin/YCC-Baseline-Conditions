@@ -17,6 +17,7 @@ library(sp)
 library(rgeos)
 library(tigris)
 library(leaflet)
+library(maptools)
 library(ggthemes)
 library(magrittr)
 library(stringr)
@@ -34,6 +35,7 @@ library(tidyverse)
 library(miscgis)
 library(operator.tools)
 library(ggiraph)
+library(leaflet.extras)
 root <- rprojroot::is_rstudio_project
 root_file <- root$make_fix_file()
 opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, comment=FALSE)
@@ -46,9 +48,19 @@ pal_rgb_4 <- miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist
 kc_tr_acs <- acs::geo.make(state = "WA",county = "King", tract = "*") 
 ```
 
-### Seattle Tracts
-#### ACS Data
+### ACS Data
 ```{r poc-acs}
+
+# Setup the ACS geographies: Seattle (tracts), YCC (tracts), Seattle (place)
+# -----------------------------------------------------------------------------
+
+ycc_geo_acs <- c(acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_sea_sp$TRACTCE)),
+                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CH','GEOID6']),combine = TRUE, combine.term = 'CH'),
+                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CA','GEOID6']),combine = TRUE, combine.term = 'CA'),
+                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='FH','GEOID6']),combine = TRUE, combine.term = 'FH'),
+                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CID','GEOID6']),combine = TRUE, combine.term = 'CID'),
+                 acs::geo.make(state = 'WA', place = "Seattle")
+                 )
 
 # Download the ACS data and save the object as a .rds file
 # -----------------------------------------------------------------------------
@@ -57,10 +69,10 @@ if(!file.exists(root_file('1-data/4-interim/poc-orig-acs.rds'))){
         
         tbl <- "B03002"  # census table code
         
-        acs.fetch(endyear = 2014, geography = kc_tr_acs, 
+        acs.fetch(endyear = 2014, geography = ycc_geo_acs, 
                   table.number = tbl) %>%
-                subset(.@geography$tract %in% tr_sea_sp$GEOID6)  %>% 
                 write_rds(root_file('1-data/4-interim/poc-orig-acs.rds'))
+        
 }
 
 poc_orig_acs <- read_rds(root_file('1-data/4-interim/poc-orig-acs.rds'))
@@ -109,31 +121,35 @@ plot(poc_acs)
 
 ```
 
+### Seattle Tracts
+
 #### Dataframe
-```{r poc-df}
+```{r poc-sea-tr-df}
 
 # Convert the `acs` object into a dataframe and save the object
 # -----------------------------------------------------------------------------
-if(!file.exists(root_file('1-data/4-interim/poc-df.rds'))){
+if(!file.exists(root_file('1-data/4-interim/poc-sea-tr-df.rds'))){
+        poc_sea_tr_acs <- poc_acs[poc_acs@geography$tract %in% tr_sea_sp$TRACTCE,]
+        
         data.frame(
-        geography(poc_acs)["tract"], 
-        estimate(poc_acs), 
-        1.645 * standard.error(poc_acs)) %>% 
+        geography(poc_sea_tr_acs)["tract"], 
+        estimate(poc_sea_tr_acs), 
+        1.645 * standard.error(poc_sea_tr_acs)) %>% 
         `colnames<-`(., c("GEOID6", "POC_PCT_EST","POC_PCT_MOE")) %>% 
         mutate(UPPER = POC_PCT_EST + POC_PCT_MOE, 
                LOWER = POC_PCT_EST - POC_PCT_MOE, 
                UPPER = if_else(UPPER > 1, 1, UPPER), 
                LOWER = if_else(LOWER < 0, 0, LOWER)) %>% 
-        write_rds(root_file('1-data/4-interim/poc-df.rds'))
+        write_rds(root_file('1-data/4-interim/poc-sea-tr-df.rds'))
 }
 
-poc_df <- read_rds(root_file('1-data/4-interim/poc-df.rds'))
+poc_sea_tr_df <- read_rds(root_file('1-data/4-interim/poc-sea-tr-df.rds'))
 
 # View the df object
 # -----------------------------------------------------------------------------
 
 view_poc_dotplot <- function() {
-        gg <- ggplot(poc_df, aes(x = reorder(GEOID6, 
+        gg <- ggplot(poc_sea_tr_df, aes(x = reorder(GEOID6, 
                                              POC_PCT_EST), y = POC_PCT_EST))
         gg <- gg + geom_linerange(aes(ymin = LOWER, 
                                       ymax = UPPER), size = 1.5, alpha = 0.25)
@@ -170,7 +186,7 @@ view_poc_dotplot_int()
 ```
 
 #### Map
-```{r poc-sp}
+```{r poc-sea-tr-sp}
 
 # Join the df to the sp object and save
 # -----------------------------------------------------------------------------
@@ -179,7 +195,7 @@ if(!file.exists(root_file('1-data/4-interim/poc-sp.gpkg'))){
         
 poc_sp <- tr_sea_sp[,'GEOID6']
 
-poc_sp@data %<>% left_join(poc_df, by = "GEOID6")
+poc_sp@data %<>% left_join(poc_sea_tr_df, by = "GEOID6")
 
 poc_sp %>% writeOGR(dsn = root_file('1-data/4-interim/poc-sp.gpkg'),
                     layer = "poc_sp", driver = "GPKG", verbose = FALSE, 
@@ -205,7 +221,7 @@ view_poc_sp <- function() {
         pal <- colorNumeric(palette = myYlOrRd, domain = c(0, 
                                                            max))
         
-        myLfltGrey() %>% 
+        myLfltGrey(hideControls = FALSE) %>% 
                 addPolygons(data = abbr, smoothFactor = 0, 
                             color = col2hex("white"), weight = 1.5, opacity = 0.5, 
                             fillColor = ~pal(POC_PCT_EST), fillOpacity = 0.75, 
@@ -217,7 +233,8 @@ view_poc_sp <- function() {
                           opacity = 0.75, 
                           labFormat = labelFormat(suffix = "%", 
                                                   between = ", ",
-                                                  transform = function(x) 100 * x))
+                                                  transform = function(x) 100 * x)) %>% 
+                addFullscreenControl()
         
 }
 
@@ -225,15 +242,135 @@ view_poc_sp()
 
 ```
 
-### Yesler Community Collaborative Neighborhoods (tracts)
-#### ACS Data
-```{r poc-ycc-acs}
+### Yesler Community Collaborative Neighborhoods (tracts and Seattle city)
 
-# Combine the ACS estimates by YCC neighborhood and calculate percentages
+#### Dataframe
+
+```{r poc-ycc-df}
+
+
+# Convert the `acs` object into a dataframe and save the object
+# -----------------------------------------------------------------------------
+if(!file.exists(root_file('1-data/4-interim/poc-ycc-df.rds'))){
+        poc_ycc_acs <- poc_acs[poc_acs@geography$tract %!in% tr_sea_sp$TRACTCE,]
+        
+        data.frame(
+        geography(poc_ycc_acs)["NAME"], 
+        estimate(poc_ycc_acs), 
+        1.645 * standard.error(poc_ycc_acs)) %>% 
+        `colnames<-`(., c("NAME", "POC_PCT_EST","POC_PCT_MOE")) %>% 
+        mutate(NAME = if_else(NAME == 'Seattle city, Washington',
+                              'SEA',
+                              NAME),
+               UPPER = POC_PCT_EST + POC_PCT_MOE, 
+               LOWER = POC_PCT_EST - POC_PCT_MOE, 
+               UPPER = if_else(UPPER > 1, 1, UPPER), 
+               LOWER = if_else(LOWER < 0, 0, LOWER)) %>%
+        write_rds(root_file('1-data/4-interim/poc-ycc-df.rds'))
+}
+
+poc_ycc_df <- read_rds(root_file('1-data/4-interim/poc-ycc-df.rds'))
+
+# View the df object
 # -----------------------------------------------------------------------------
 
-poc_ycc1_acs <- poc_orig_acs
+view_poc_dotplot <- function() {
+        gg <- ggplot(poc_ycc_df, aes(x = reorder(NAME, 
+                                             POC_PCT_EST), y = POC_PCT_EST))
+        gg <- gg + geom_linerange(aes(ymin = LOWER, 
+                                      ymax = UPPER), size = 1.5, alpha = 0.25)
+        gg <- gg + geom_point_interactive(aes(tooltip = NAME), 
+                                          size = 3, shape = 21, color = "white", fill = "grey30")
+        gg <- gg + scale_x_discrete(expand = c(0.01, 
+                                               0))
+        gg <- gg + scale_y_continuous(labels = scales::percent)
+        gg <- gg + coord_flip()
+        gg <- gg + theme_minimal()
+        gg <- gg + theme(panel.grid.major.y = element_blank(), 
+                         panel.grid.minor.y = element_blank(), 
+                         panel.grid.major.x = element_line(linetype = 3, 
+                                                           color = "grey30"), 
+                         panel.grid.minor.x = element_blank(), 
+                         axis.text.y = element_blank())
+        gg <- gg + labs(x = NULL, y = NULL, title = "POC", 
+                        subtitle = "Description", 
+                        caption = "Source: ACS Table B03002, Five-Year Estimates (2010-2014)")
+        gg
+}
 
+# view_poc_dotplot()
+
+view_poc_dotplot_int <- function() {
+        ggiraph(code = {
+                print(view_poc_dotplot())
+        }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
+        hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
+}
+
+view_poc_dotplot_int()
 
 
 ```
+
+#### Map
+
+```{r poc-ycc-sp}
+
+# Join the df to the sp object and save
+# -----------------------------------------------------------------------------
+
+if(!file.exists(root_file('1-data/4-interim/poc-ycc-sp.gpkg'))){
+        
+poc_ycc_sp <- nhood_ycc_sp[,'NHOOD_ABBR']
+
+poc_ycc_sp@data %<>% left_join(poc_ycc_df, by = c("NHOOD_ABBR" = "NAME"))
+
+poc_ycc_sp %>% writeOGR(dsn = root_file('1-data/4-interim/poc-ycc-sp.gpkg'),
+                    layer = "poc_ycc_sp", driver = "GPKG", verbose = FALSE, 
+         overwrite_layer = TRUE)
+}
+
+poc_ycc_sp <-  readOGR(dsn = root_file('1-data/4-interim/poc-ycc-sp.gpkg'),
+                    layer = "poc_ycc_sp", 
+                    verbose = FALSE, 
+                    stringsAsFactors = FALSE) %>% 
+        spTransform(crs_proj)
+
+
+# View the sp object
+# -----------------------------------------------------------------------------
+
+view_poc_ycc_sp <- function() {
+        abbr <- poc_ycc_sp
+        
+        myYlOrRd <- RColorBrewer::brewer.pal(9, "YlOrRd")[2:7]
+        max <- max(abbr@data$POC_PCT_EST) %>% round_any(0.1, 
+                                                        ceiling)
+        pal <- colorNumeric(palette = myYlOrRd, domain = c(0, 
+                                                           max))
+        
+        myLfltGrey(hideControls = FALSE) %>% 
+                addPolygons(data = abbr, smoothFactor = 0, 
+                            color = col2hex("white"), weight = 1.5, opacity = 0.5, 
+                            fillColor = ~pal(POC_PCT_EST), fillOpacity = 0.75, 
+                            popup = ~NHOOD_ABBR) %>% 
+                addLegend(position = "topright", 
+                          title = "POC", 
+                          pal = pal, 
+                          values = c(0, max), 
+                          opacity = 0.75, 
+                          labFormat = labelFormat(suffix = "%", 
+                                                  between = ", ",
+                                                  transform = function(x) 100 * x)) %>% 
+                addFullscreenControl()
+        
+}
+
+view_poc_ycc_sp()
+
+
+```
+
+
+
+

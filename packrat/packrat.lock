@@ -302,6 +302,16 @@ GithubUsername: rstudio
 GithubRef: master
 GithubSha1: e38c94837cd1a8e336a5a3aa75daa38a314d2eff
 
+Package: leaflet.extras
+Source: github
+Version: 0.1.2
+Hash: edf701afa1840983b3750c69b39990f5
+Requires: htmltools, htmlwidgets, leaflet, magrittr, shiny
+GithubRepo: leaflet.extras
+GithubUsername: bhaskarvk
+GithubRef: master
+GithubSha1: 7cb27bc14f650b6fc0b5095fef116bc96f935036
+
 Package: lubridate
 Source: CRAN
 Version: 1.6.0

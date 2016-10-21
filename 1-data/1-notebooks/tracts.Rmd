@@ -36,6 +36,12 @@ library(operator.tools)
 root <- rprojroot::is_rstudio_project
 root_file <- root$make_fix_file()
 opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, comment=FALSE)
+
+```
+
+
+
+```{r tracts-colors}
 green <- miscgis::miscgis_pals$tableau_cat[["green"]]
 blue <- miscgis::miscgis_pals$tableau_cat[["blue"]]
 orange <- miscgis::miscgis_pals$tableau_cat[["orange"]]
@@ -45,11 +51,10 @@ pal_rgb_4 <- miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist
 ```
 
 
-
 ### YCC Census Tracts
 The YCC neighborhoods represented as US Census tracts.
 
-```{r tracts-intro}
+```{r tracts-ycc-nhoods}
 
 if(!file.exists(root_file('1-data/4-interim/tr-ycc-sp.gpkg'))){
         
@@ -105,8 +110,54 @@ myLfltGrey() %>%
 
 ```
 
+### YCC Neighborhoods
+The YCC neighborhoods represented as merged US Census tracts.
 
+```{r tracts-ycc-nhoods-merged}
 
+# Dissolve YCC tracts by Neighborhood and save as sp object
+# -----------------------------------------------------------------------------
+
+if(!file.exists(root_file('1-data/4-interim/nhood-ycc-sp.gpkg'))){
+        df <- tr_ycc_sp@data[!duplicated(tr_ycc_sp$NHOOD_ABBR),] %>% 
+        arrange(NHOOD_FCT)
+rownames(df) <- df$NHOOD_ABBR
+df %<>% select(-NHOOD_FCT)
+
+nhood_ycc_sp <- SpatialPolygonsDataFrame(Sr = gUnaryUnion(tr_ycc_sp,id = tr_ycc_sp$NHOOD_ABBR),
+                                 data = df,
+                                 match.ID = TRUE)
+
+nhood_ycc_sp %>% writeOGR(dsn = root_file('1-data/4-interim/nhood-ycc-sp.gpkg'),
+                          layer = 'nhood_ycc_sp',
+                          driver = 'GPKG',
+                          verbose = FALSE)
+}
+
+nhood_ycc_sp <-  readOGR(dsn = root_file('1-data/4-interim/nhood-ycc-sp.gpkg'),
+                          layer = 'nhood_ycc_sp',
+                          verbose = FALSE,stringsAsFactors = FALSE) %>% spTransform(crs_proj)
+
+# Map the sp object
+# -----------------------------------------------------------------------------
+
+nhood_ycc_sp@data %<>% mutate(NHOOD_FCT = factor(NHOOD,levels = c('Capitol Hill',
+                                                               'Central Area',
+                                                               'First Hill',
+                                                               'Chinatown International District'),
+                                              ordered = TRUE))
+
+myLfltGrey() %>% 
+        addPolygons(data = nhood_ycc_sp, 
+                    fillColor = ~pal(NHOOD_FCT), 
+                    fillOpacity = .85,
+                    color = col2hex('white'),
+                    opacity = 1,
+                    weight = .5,
+                    smoothFactor = 0) %>% 
+        addLegend(position = 'topright',pal = pal, values = nhood_ycc_sp$NHOOD_FCT,opacity = .85)
+
+```
 
 
 
