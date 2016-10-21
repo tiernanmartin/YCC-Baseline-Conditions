@@ -46,8 +46,8 @@ pal_rgb_4 <- miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist
 
 
 
-### Introduction
-Insert text here.
+### YCC Census Tracts
+The YCC neighborhoods represented as US Census tracts.
 
 ```{r tracts-intro}
 
