@@ -54,13 +54,15 @@ kc_tr_acs <- acs::geo.make(state = "WA",county = "King", tract = "*")
 # Setup the ACS geographies: Seattle (tracts), YCC (tracts), Seattle (place)
 # -----------------------------------------------------------------------------
 
-ycc_geo_acs <- c(acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_sea_sp$TRACTCE)),
-                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CH','GEOID6']),combine = TRUE, combine.term = 'CH'),
-                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CA','GEOID6']),combine = TRUE, combine.term = 'CA'),
-                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='FH','GEOID6']),combine = TRUE, combine.term = 'FH'),
-                 acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CID','GEOID6']),combine = TRUE, combine.term = 'CID'),
-                 acs::geo.make(state = 'WA', place = "Seattle")
-                 )
+ycc_geo_acs <- c(
+        acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_sea_sp$TRACTCE)),
+        acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CH','GEOID6']),combine = TRUE, combine.term = 'CH'),
+        acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CA','GEOID6']),combine = TRUE, combine.term = 'CA'),
+        acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='FH','GEOID6']),combine = TRUE, combine.term = 'FH'),
+        acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR=='CID','GEOID6']),combine = TRUE, combine.term = 'CID'),
+        acs::geo.make(state = "WA",county = "King", tract = as.numeric(tr_ycc_sp@data[tr_ycc_sp$NHOOD_ABBR %in% c('CH','CA','FH','CID'),'GEOID6']),combine = TRUE, combine.term = 'YCC'),
+        acs::geo.make(state = 'WA', place = "Seattle")
+)
 
 # Download the ACS data and save the object as a .rds file
 # -----------------------------------------------------------------------------
@@ -128,7 +130,10 @@ plot(poc_acs)
 
 # Convert the `acs` object into a dataframe and save the object
 # -----------------------------------------------------------------------------
+
+# Tracts only
 if(!file.exists(root_file('1-data/4-interim/poc-sea-tr-df.rds'))){
+        
         poc_sea_tr_acs <- poc_acs[poc_acs@geography$tract %in% tr_sea_sp$TRACTCE,]
         
         data.frame(
@@ -265,7 +270,7 @@ if(!file.exists(root_file('1-data/4-interim/poc-ycc-df.rds'))){
                UPPER = POC_PCT_EST + POC_PCT_MOE, 
                LOWER = POC_PCT_EST - POC_PCT_MOE, 
                UPPER = if_else(UPPER > 1, 1, UPPER), 
-               LOWER = if_else(LOWER < 0, 0, LOWER)) %>%
+               LOWER = if_else(LOWER < 0, 0, LOWER)) %>% 
         write_rds(root_file('1-data/4-interim/poc-ycc-df.rds'))
 }
 
