@@ -13,6 +13,22 @@ Source: CRAN
 Version: 0.5-1
 Hash: 375869004db963f9915f2b8a49b4a718
 
+Package: DT
+Source: github
+Version: 0.2.8
+Hash: 30df126bcd1ad4e2dfcfd63bf0169bac
+Requires: htmltools, htmlwidgets, magrittr
+GithubRepo: DT
+GithubUsername: rstudio
+GithubRef: master
+GithubSha1: 11d6c056ab983d326b4e3e37b3bb167b41bf599a
+
+Package: GISTools
+Source: CRAN
+Version: 0.7-4
+Hash: e8c112215956ecc1f6b706ae1972fe1b
+Requires: RColorBrewer, maptools, rgeos, sp
+
 Package: PKI
 Source: CRAN
 Version: 0.1-3
@@ -231,6 +247,11 @@ Version: 1.0.0
 Hash: 2fee7590629252b68fbfbfa25a9bcc0f
 Requires: BH, Rcpp, hms, readr, tibble
 
+Package: hexbin
+Source: CRAN
+Version: 1.27.1
+Hash: 9f94c576cc4b9e83fd714ae8387272e6
+
 Package: highr
 Source: CRAN
 Version: 0.6
@@ -406,6 +427,14 @@ Source: CRAN
 Version: 0.4.7-1
 Hash: 16ca16d36eb18d1d16113606ecc5c400
 
+Package: plotly
+Source: CRAN
+Version: 4.5.2
+Hash: 4344f5c47b8df6dae288601d4c0cee44
+Requires: base64enc, digest, dplyr, ggplot2, hexbin, htmlwidgets, httr,
+    jsonlite, lazyeval, magrittr, purrr, scales, tibble, tidyr,
+    viridisLite
+
 Package: plyr
 Source: CRAN
 Version: 1.8.4
@@ -563,12 +592,12 @@ GithubSha1: 44bf7c5154afe1d054de3386696d888602cf2b5e
 Package: shmodules
 Source: github
 Version: 0.0.1
-Hash: 38482eeaa7abde17bb434df9e02f2b82
+Hash: 85c18a4c4d88af2b6130aa473e9848ff
 Requires: dplyr, ggplot2, htmltools, shiny, shinydashboard
 GithubRepo: shmodules
 GithubUsername: tiernanmartin
 GithubRef: master
-GithubSha1: 67f4f0f6c82c050d01a9f01e7a59446ae42dd038
+GithubSha1: bad633a46e989cf04a125403178abc453ec8c22f
 
 Package: sourcetools
 Source: CRAN
@@ -626,6 +655,11 @@ Package: uuid
 Source: CRAN
 Version: 0.1-2
 Hash: 69acbbcf4dcff3a258f94de540214001
+
+Package: viridisLite
+Source: CRAN
+Version: 0.1.3
+Hash: d16a33135b1f4c8818b8cd569da3913f
 
 Package: webshot
 Source: github
