@@ -387,13 +387,13 @@ Requires: htmltools, shiny
 Package: miscgis
 Source: github
 Version: 0.1.1
-Hash: 00dad215b06417d8fe8fe4224c9e7e76
+Hash: 225b20d0349f3265f184aab5b4ace4f2
 Requires: dplyr, leaflet, miniUI, operator.tools, shinydashboard, sp,
     tigris
 GithubRepo: miscgis
 GithubUsername: tiernanmartin
 GithubRef: master
-GithubSha1: be29ce0be911808c0d4a1609ae3dc739a5349b5c
+GithubSha1: ec851c665d46424f5d251a8883cc3eb6230f10da
 
 Package: mnormt
 Source: CRAN
