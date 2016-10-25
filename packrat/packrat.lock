@@ -79,6 +79,11 @@ Version: 1.4.1
 Hash: 3310ba24c8436b297d1fb60ac4324ff2
 Requires: png
 
+Package: Rttf2pt1
+Source: CRAN
+Version: 1.3.4
+Hash: 4e454957bc4efd2dc8e2568ae1ff835d
+
 Package: XML
 Source: CRAN
 Version: 3.98-1.4
@@ -89,6 +94,11 @@ Source: CRAN
 Version: 2.0
 Hash: d356c835968d782919697359b102450c
 Requires: RCurl, XML, plyr, stringr
+
+Package: ash
+Source: CRAN
+Version: 1.0-15
+Hash: 21c2b3e7724465b8a9eeacc9b2af6bbb
 
 Package: assertthat
 Source: CRAN
@@ -162,6 +172,17 @@ Version: 0.10
 Hash: c3601a10c987d439e0c63ec635234a76
 Requires: stringr
 
+Package: extrafont
+Source: CRAN
+Version: 0.17
+Hash: d9555d8cfe70b3372d066648400770b5
+Requires: Rttf2pt1, extrafontdb
+
+Package: extrafontdb
+Source: CRAN
+Version: 1.0
+Hash: 72269616f582dc675c90ecd025af2754
+
 Package: forcats
 Source: CRAN
 Version: 0.1.1
@@ -190,6 +211,17 @@ Source: CRAN
 Version: 1.5-5
 Hash: 6772bef0f3f3aaa58b475479c03ff596
 Requires: sp
+
+Package: ggalt
+Source: github
+Version: 0.3.1.9000
+Hash: 3306d770741226cc193ac5d82a17b3b7
+Requires: RColorBrewer, ash, dplyr, extrafont, ggplot2, gtable, maps,
+    plotly, proj4, scales
+GithubRepo: ggalt
+GithubUsername: hrbrmstr
+GithubRef: master
+GithubSha1: 93a7dd9ed71ddca0b3df7028ce5ae92fc6687df2
 
 Package: ggiraph
 Source: github
@@ -445,6 +477,11 @@ Package: png
 Source: CRAN
 Version: 0.1-7
 Hash: 421d7d6e0fb4bd885ecbd909b6456b8b
+
+Package: proj4
+Source: CRAN
+Version: 1.0-8
+Hash: 0582c4cb021176fb212092068803f4b5
 
 Package: proto
 Source: CRAN
