@@ -605,6 +605,16 @@ Version: 0.3-0
 Hash: 405f00513f6b52d170ddd713d12e9ab9
 Requires: stringr
 
+Package: sf
+Source: github
+Version: 0.2-2
+Hash: 1c7a16d407948b62f68ea36fdb6f983a
+Requires: DBI, Rcpp
+GithubRepo: sfr
+GithubUsername: edzer
+GithubRef: master
+GithubSha1: 919e9cb3a51c0842468b5b7485c7ce55940dc56d
+
 Package: shiny
 Source: github
 Version: 0.14.1.9001
