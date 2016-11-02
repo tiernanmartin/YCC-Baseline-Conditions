@@ -46,11 +46,11 @@ plot(nc_aggr, col = "transparent", border = "white", add = TRUE)
 ```
 Upper-left is the original `nc` object. 
 
-Upper-right is the `nc_grp`, which has simply been been transformed by `dyplr::mutate` (the lack of CRS is visually apparent).
+Upper-right is the `nc_aggr`, which has been tranformed with `summarise()` which aggregates some counties together (also notice that the lack of CRS is visually apparent).
 
-Lower-left is `nc_grp` colored by the group (`nc_grp$GRP`)
+Lower-left is `nc_grp` colored by the group (`nc_grp$GRP`), which shows how I expected the aggregated geometries to look.
 
-Lower-right is `nc_grp` overlayed by the `summarise()` version: `nc_aggr` (notice that the white border lines do not align with the fill colors)
+Lower-right is `nc_grp` overlayed by `nc_aggr` (notice that the white border lines do not align with the fill colors)
 
 
 #### Geom Dropping
