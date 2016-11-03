@@ -134,9 +134,14 @@ if(!file.exists(root_file('1-data/4-interim/ycc-nhood-tr-sf.gpkg'))){
                 tr_ycc_sf %>%
                 group_by(NAME) %>%
                 summarise_all(first) %>%
-                rbind(tr_ycc_sf) %>%
-                as('Spatial') %>%
-                st_as_sf()
+                mutate(GEOID = NA_character_,
+                       GEOID6 = NA_character_) %>% 
+                rbind(tr_ycc_sf) %>% 
+                as('Spatial') %>% 
+                st_as_sf() %>% 
+                mutate(GEOGRAPHY = ifelse(is.na(GEOID),
+                                          'neighborhood',
+                                          'tract'))
         
         ycc_nhood_tr_sf %>% st_write(dsn = root_file('1-data/4-interim/ycc-nhood-tr-sf.gpkg'),
                                      layer = 'ycc_nhood_tr_sf',
