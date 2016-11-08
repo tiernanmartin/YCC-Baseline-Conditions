@@ -1,0 +1,330 @@
+---
+df_print: tibble
+output:
+  html_notebook:
+    default
+  pdf_document:
+    keep_tex: yes
+always_allow_html: yes
+---
+
+```{r census-geos-setup, echo = FALSE, warning=FALSE,message=FALSE,comment=FALSE}
+library(plyr)
+library(knitr)
+library(rprojroot)
+library(rgdal)
+library(sp)
+library(rgeos)
+library(tigris)
+library(leaflet)
+library(ggthemes)
+library(magrittr)
+library(stringr)
+library(downloader)
+library(webshot)
+library(htmltools)
+library(gplots)
+library(ggmap)
+library(shiny)
+library(htmlwidgets)
+library(readxl)
+library(acs)
+library(RColorBrewer)
+library(tidyverse)
+library(miscgis)
+library(operator.tools)
+library(sf)
+root <- rprojroot::is_rstudio_project
+root_file <- root$make_fix_file()
+opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE, comment=FALSE)
+
+```
+
+```{r census-geos-colors}
+green <- miscgis::miscgis_pals$tableau_cat[["green"]]
+blue <- miscgis::miscgis_pals$tableau_cat[["blue"]]
+orange <- miscgis::miscgis_pals$tableau_cat[["orange"]]
+red <- miscgis::miscgis_pals$tableau_cat[["red"]]
+teal <- miscgis::miscgis_pals$tableau_cat[["teal"]]
+pal_rgb_4 <- miscgis::miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist %>% palette()
+```
+
+```{r census-geos-functions}
+
+coerce_from_geometrycollection <- function(x, crs = NULL){
+        
+        crs <- {
+                if(is.null(crs)){
+                        st_crs(x)
+                }else{
+                        crs
+                } 
+        }
+        
+        geom <- st_geometrycollection() %>% st_sfc()
+        
+        for(i in 1:nrow(x)){
+                
+                geom[[i]] <- {
+                        if(
+                                st_geometry(x)[[i]] %>% unlist(recursive = FALSE) %>% summary() %>% .[1,3] == "list"
+                        ){
+                                st_geometry(x)[[i]] %>% unlist(recursive = FALSE) %>% st_multipolygon()
+                        }else{
+                                st_geometry(x)[[i]] %>% unlist(recursive = FALSE) %>% st_polygon()
+                        }
+                }
+        }
+        
+        x$geom <- geom
+        st_crs(x) <- crs
+        return(x)
+        
+}
+
+coerce_to_geom <- function(x, FUN,crs = NULL){
+        
+        crs <- {
+                if(is.null(crs)){
+                        st_crs(x)
+                }else{
+                        crs
+                } 
+        }
+        
+        geom <-  FUN() %>% st_sfc()
+        
+        coerce_ <- function(x){
+                
+                is_list <- st_geometry(x)[[i]] %>% summary %>% .[1,3]
+                
+                if(is_list == 'list'){
+                        st_geometry(x)[[i]] %>% FUN()
+                }else{
+                        st_geometry(x)[[i]] %>% list %>% FUN()
+                }
+                
+        }
+        
+        
+        for(i in 1:nrow(x)){geom[[i]] <- coerce_(x)}
+        
+        x$geom <- geom
+        st_crs(x) <- crs
+        return(x)
+        
+}
+
+
+```
+
+
+
+
+### Simple Feature: Seattle Tracts, YCC Tract-Neighborhhods, YCC Neighborhoods, Seattle (city)
+The YCC neighborhoods represented as US Census tracts.
+
+```{r census-geos-ycc-nhoods}
+
+if(!file.exists(root_file('1-data/4-interim/tr-sea-ycc-sf.gpkg'))){
+        
+        ycc <- c("007900", "008600", "007401", "007500", "008300", "008400", 
+                    "008500", "008700", "008800", "009000", "009100", "007600", 
+                    "007402", "009200")
+        
+        cid <- c('009200','009100')
+        fh <- c('008500','008600')
+        ca <- c('009000','008700','008800','007900')
+        ch <- c('008300','008400','007500','007402','007401','007600')
+        
+        # Neighborhood names and tract-neighborhoods
+        
+        tr_sea_sf <- 
+                st_read(dsn = root_file('1-data/4-interim/tr-sea-sp.gpkg')) %>% 
+                mutate(
+                        NAME_FULL = case_when(.$GEOID6 %in% cid ~ "Chinatown International District",
+                                              .$GEOID6 %in% fh ~ "First Hill",
+                                              .$GEOID6 %in% ca ~ "Central Area",
+                                              .$GEOID6 %in% ch ~ "Capitol Hill",
+                                              .$GEOID6 %!in% ycc ~ NA_character_),
+                        NAME = case_when(.$GEOID6 %in% cid ~ "CID",
+                                               .$GEOID6 %in% fh ~ "FH",
+                                               .$GEOID6 %in% ca ~ "CA",
+                                               .$GEOID6 %in% ch ~ "CH",
+                                         .$GEOID6 %!in% ycc ~ NA_character_),
+                        GEOID = as.character(GEOID),
+                            GEOID6 = as.character(GEOID6)
+                ) %>% 
+                select(NAME,NAME_FULL,GEOID,GEOID6,geom)
+        
+        
+        
+        
+        # Tract-neighborhoods:
+        # dissolve YCC tracts by Neighborhood, join to the tract data, 
+        # record the geography type in a variable to make it easy
+        # to split the dataset later.
+        
+        st_set_crs <- function(x, crs){
+                crs <- {
+                if(is.null(crs)){
+                        st_crs(x)
+                }else{
+                        crs
+                } 
+                }
+                
+                st_crs(x) <- crs
+                return(x)
+        }
+        
+        tr_sea_ycc_sf <-
+                tr_sea_sf %>% 
+                filter(!is.na(NAME)) %>%
+                group_by(NAME) %>%
+                summarise_all(first) %>%
+                mutate(GEOID = NA_character_,
+                       GEOID6 = NA_character_) %>% 
+                rbind(tr_sea_sf) %>% 
+                mutate(GEOGRAPHY = ifelse(is.na(GEOID),
+                                          'neighborhood',
+                                          'tract')) %>% 
+                coerce_to_geom(st_multipolygon) %>% 
+                select(everything(),geom) %>% 
+                st_set_crs(st_crs(tr_sea_sf))
+                
+        
+        # YCC Neighborhood
+        
+        ycc_sf <- 
+                tr_sea_ycc_sf %>% 
+                filter(GEOGRAPHY == 'neighborhood') %>% 
+                mutate(GRP = 1) %>% 
+                group_by(GRP) %>% 
+                summarise_all(first) %>% 
+                select(-GRP) %>% 
+                mutate(NAME = 'YCC',
+                       NAME_FULL = 'YCC Neighborhoods',
+                       GEOGRAPHY = 'neighborhood group') %>% 
+                coerce_to_geom(st_multipolygon)
+        
+        sea_sf <- 
+                tr_sea_ycc_sf %>% 
+                mutate(GRP = 1) %>% 
+                group_by(GRP) %>% 
+                summarise_all(first) %>% 
+                select(-GRP) %>% 
+                mutate(NAME = 'SEA',
+                       NAME_FULL = 'Seattle',
+                       GEOGRAPHY = 'city') %>% 
+                coerce_to_geom(st_multipolygon) 
+        
+        ycc_all_sf <- 
+                rbind(sea_sf,ycc_sf) %>% 
+                rbind(tr_sea_ycc_sf) %>% 
+                mutate(JOIN_ID = ifelse(is.na(GEOID6),NAME,GEOID6)) 
+        
+        
+        ycc_all_sf %>%    
+                write_rds(root_file('1-data/4-interim/ycc-all-sf.rds'))
+                
+        
+}
+
+# Read in the data and create a categorical variable with the `NAME` variable 
+# (for use in map legends )
+
+ycc_all_sf <- 
+        read_rds(root_file('1-data/4-interim/ycc-all-sf.rds')) %>% 
+        mutate(NAME_FCT = factor(NAME_FULL,
+                                 levels = c('Capitol Hill',
+                                            'Central Area',
+                                            'First Hill',
+                                            'Chinatown International District'),
+                                 ordered = TRUE)) %>% 
+        select(everything(),geom)
+
+```
+
+```{r census-geos-ycc-summary, echo=TRUE}
+
+# Print a summary (first 4 records of each geography type)
+ycc_all_sf %>% 
+        group_by(GEOGRAPHY) %>% 
+        slice(1:4) %>% 
+        arrange(GEOGRAPHY,NAME) 
+```
+
+
+
+### Maps
+#### Seattle Tracts
+```{r census-geos-tr-map}
+
+tr <- 
+        ycc_all_sf %>% 
+        filter(GEOGRAPHY == 'tract')
+
+tr_ycc <- tr %>% filter(!is.na(NAME))
+
+pal <- colorFactor(pal_rgb_4,tr_ycc$NAME_FCT)
+
+
+
+myLfltGrey() %>% 
+        addPolygons(data = as(tr,'Spatial'),
+                fillOpacity = 0,
+                color = col2hex('grey30'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        addPolygons(data = as(tr_ycc, 'Spatial'),
+                fillColor = ~pal(NAME_FCT), 
+                fillOpacity = .85,
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        addLegend(title = NULL,position = 'topright',pal = pal, values = tr_ycc$NAME_FCT,opacity = .85)
+
+
+```
+
+#### YCC Tract-Neighborhoods
+```{r census-geos-ycc-map}
+
+tr <- 
+        ycc_all_sf %>% 
+        filter(GEOGRAPHY == 'tract')
+
+nhood <-ycc_all_sf %>% 
+        filter(GEOGRAPHY == 'neighborhood') 
+
+cnt <- nhood %>% st_union() %>% st_centroid()
+
+lng <- st_bbox(cnt)['xmin'][[1]]
+
+lat <- st_bbox(cnt)['ymin'][[1]]
+
+pal <- colorFactor(pal_rgb_4,nhood$NAME_FCT) 
+
+myLfltGrey() %>% 
+        addPolygons(data = as(tr,'Spatial'),
+                fillOpacity = 0,
+                color = col2hex('grey30'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        addPolygons(data = as(nhood, 'Spatial'),
+                fillColor = ~pal(NAME_FCT), 
+                fillOpacity = .85,
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        addLegend(title = NULL,position = 'topright',pal = pal, values = nhood$NAME_FCT,opacity = .85) %>% 
+        setView(lng = lng,lat = lat,zoom = 13)
+       
+
+```
+
