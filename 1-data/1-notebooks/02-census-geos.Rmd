@@ -47,6 +47,9 @@ orange <- miscgis::miscgis_pals$tableau_cat[["orange"]]
 red <- miscgis::miscgis_pals$tableau_cat[["red"]]
 teal <- miscgis::miscgis_pals$tableau_cat[["teal"]]
 pal_rgb_4 <- miscgis::miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist %>% palette()
+pal_rgb_4 <- miscgis::miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist %>% palette()
+pal_rgb_6 <- miscgis::miscgis_pals$tableau_cat[c("red","gold","green","blue","orange","purple")] %>% unlist %>% palette()
+pal_rgb_6 <- miscgis::miscgis_pals$tableau_cat[c("red","gold","green","blue","orange","purple")] %>% unlist %>% palette()
 ```
 
 ```{r census-geos-functions}
@@ -165,19 +168,6 @@ if(!file.exists(root_file('1-data/4-interim/tr-sea-ycc-sf.gpkg'))){
         # record the geography type in a variable to make it easy
         # to split the dataset later.
         
-        st_set_crs <- function(x, crs){
-                crs <- {
-                if(is.null(crs)){
-                        st_crs(x)
-                }else{
-                        crs
-                } 
-                }
-                
-                st_crs(x) <- crs
-                return(x)
-        }
-        
         tr_sea_ycc_sf <-
                 tr_sea_sf %>% 
                 filter(!is.na(NAME)) %>%
@@ -222,8 +212,29 @@ if(!file.exists(root_file('1-data/4-interim/tr-sea-ycc-sf.gpkg'))){
         ycc_all_sf <- 
                 rbind(sea_sf,ycc_sf) %>% 
                 rbind(tr_sea_ycc_sf) %>% 
-                mutate(JOIN_ID = ifelse(is.na(GEOID6),NAME,GEOID6)) 
-        
+                mutate(JOIN_ID = ifelse(is.na(GEOID6),NAME,GEOID6),
+                       NAME_FCT = factor(NAME,
+                                 levels = c('CH',
+                                            'CA',
+                                            'FH',
+                                            'CID',
+                                            'YCC',
+                                            'SEA'),
+                                 ordered = TRUE),
+                       NAME_FULL_FCT = factor(NAME_FULL,
+                                 levels = c('Capitol Hill',
+                                            'Central Area',
+                                            'First Hill',
+                                            'Chinatown International District',
+                                            'YCC Neighborhoods',
+                                            'Seattle'),
+                                 ordered = TRUE),
+                       NAME_FULL_FCT_NHOODS = factor(NAME_FULL,
+                                 levels = c('Capitol Hill',
+                                            'Central Area',
+                                            'First Hill',
+                                            'Chinatown International District'),
+                                 ordered = TRUE))
         
         ycc_all_sf %>%    
                 write_rds(root_file('1-data/4-interim/ycc-all-sf.rds'))
@@ -231,18 +242,10 @@ if(!file.exists(root_file('1-data/4-interim/tr-sea-ycc-sf.gpkg'))){
         
 }
 
-# Read in the data and create a categorical variable with the `NAME` variable 
-# (for use in map legends )
+# Read in the data
 
 ycc_all_sf <- 
-        read_rds(root_file('1-data/4-interim/ycc-all-sf.rds')) %>% 
-        mutate(NAME_FCT = factor(NAME_FULL,
-                                 levels = c('Capitol Hill',
-                                            'Central Area',
-                                            'First Hill',
-                                            'Chinatown International District'),
-                                 ordered = TRUE)) %>% 
-        select(everything(),geom)
+        read_rds(root_file('1-data/4-interim/ycc-all-sf.rds'))
 
 ```
 
@@ -267,7 +270,7 @@ tr <-
 
 tr_ycc <- tr %>% filter(!is.na(NAME))
 
-pal <- colorFactor(pal_rgb_4,tr_ycc$NAME_FCT)
+pal <- colorFactor(pal_rgb_4,tr_ycc$NAME_FULL_FCT_NHOODS)
 
 
 
@@ -279,13 +282,13 @@ myLfltGrey() %>%
                 weight = .5,
                 smoothFactor = 0) %>% 
         addPolygons(data = as(tr_ycc, 'Spatial'),
-                fillColor = ~pal(NAME_FCT), 
+                fillColor = ~pal(NAME_FULL_FCT_NHOODS), 
                 fillOpacity = .85,
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
-        addLegend(title = NULL,position = 'topright',pal = pal, values = tr_ycc$NAME_FCT,opacity = .85)
+        addLegend(title = NULL,position = 'topright',pal = pal, values = tr_ycc$NAME_FULL_FCT_NHOODS,opacity = .85)
 
 
 ```
@@ -306,7 +309,7 @@ lng <- st_bbox(cnt)['xmin'][[1]]
 
 lat <- st_bbox(cnt)['ymin'][[1]]
 
-pal <- colorFactor(pal_rgb_4,nhood$NAME_FCT) 
+pal <- colorFactor(pal_rgb_4,nhood$NAME_FULL_FCT_NHOODS) 
 
 myLfltGrey() %>% 
         addPolygons(data = as(tr,'Spatial'),
@@ -316,13 +319,13 @@ myLfltGrey() %>%
                 weight = .5,
                 smoothFactor = 0) %>% 
         addPolygons(data = as(nhood, 'Spatial'),
-                fillColor = ~pal(NAME_FCT), 
+                fillColor = ~pal(NAME_FULL_FCT_NHOODS), 
                 fillOpacity = .85,
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
-        addLegend(title = NULL,position = 'topright',pal = pal, values = nhood$NAME_FCT,opacity = .85) %>% 
+        addLegend(title = NULL,position = 'topright',pal = pal, values = nhood$NAME_FULL_FCT_NHOODS,opacity = .85) %>% 
         setView(lng = lng,lat = lat,zoom = 13)
        
 
