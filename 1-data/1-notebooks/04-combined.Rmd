@@ -80,7 +80,7 @@ first_not_na <- function(x){
         }
 
 replace_empty <- function(x){
-        if(nchar())
+        ifelse(nchar(x)==0,NA_character_,x)
 }
 
 
@@ -97,11 +97,12 @@ comb_long_sf <-
                                     str_detect(.$VAR,'LOWER') ~ 'Lower_Confint')) %>% 
         spread(PCT_TYPE,PCT) %>% 
         group_by(JOIN_ID,Variable) %>% 
-        summarise_all(first_not_na) %>% 
-        as.data.frame() %>% 
-        mutate_all(funs(ifelse(nchar(.)>0,.,NA_character_))) %>% 
+        summarise_all(first_not_na) %>%
+        as.data.frame() %>%
+        mutate_at(matches('NAME'),replace_empty) %>% 
         mutate(geom = st_sfc(geom)) %>% 
         st_sf() %>% 
+        coerce_to_geom(st_multipolygon) %>% 
         select(JOIN_ID,
                Variable,
                Estimate,
@@ -132,8 +133,7 @@ comb_long_sf <-
                                                         'First Hill',
                                                         'Chinatown International District'),
                                              ordered = TRUE),
-               Variable = str_replace_all(Variable,'_'," ")) %>% 
-        coerce_to_geom(st_multipolygon)
+               Variable = str_replace_all(Variable,'_'," "))
 
 comb_long_sf %>% write_rds(root_file('1-data/5-tidy/comb-long-sf.rds'))
 

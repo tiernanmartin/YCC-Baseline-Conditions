@@ -1,0 +1,205 @@
+---
+df_print: tibble
+output:
+  html_notebook:
+    code_folding: hide
+  pdf_document:
+    keep_tex: yes
+always_allow_html: yes
+---
+
+```{r misc-setup, echo = FALSE, warning=FALSE,message=FALSE,comment=FALSE}
+library(plyr)
+library(knitr)
+library(rprojroot)
+library(rgdal)
+library(sp)
+library(rgeos)
+library(tigris)
+library(leaflet)
+library(ggthemes)
+library(magrittr)
+library(stringr)
+library(downloader)
+library(webshot)
+library(htmltools)
+library(gplots)
+library(ggmap)
+library(shiny)
+library(htmlwidgets)
+library(readxl)
+library(acs)
+library(RColorBrewer)
+library(tidyverse)
+library(miscgis)
+library(operator.tools)
+library(sf)
+root <- rprojroot::is_rstudio_project
+root_file <- root$make_fix_file()
+opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, comment=FALSE)
+```
+
+### Seattle Boundary
+
+```{r misc-sea-bound, fig.cap="Seattle\'s geographic boundary"}
+
+if(!file.exists(root_file('1-data/4-interim/sea-sp.gpkg'))){
+        tigris::places(state = "WA") %>%
+        tigris::filter_place(place = "Seattle") %>%
+        spTransform(CRSobj = crs_proj) %>% 
+        writeOGR(dsn = root_file('1-data/4-interim/sea-sp.gpkg'),
+                 layer = "sea_sp", driver = "GPKG", verbose = FALSE, 
+                 overwrite_layer = TRUE)
+}
+
+sea_sp <- readOGR(dsn = root_file('1-data/4-interim/sea-sp.gpkg'),layer = "sea_sp",verbose = FALSE) %>% spTransform(crs_proj)
+
+green <- miscgis::miscgis_pals$tableau_cat[["green"]]
+
+myLfltGrey() %>% addPolygons(data = sea_sp,color = green,opacity = 1,fillColor = green,fillOpacity = .5)
+
+```
+
+
+### Puget Sound Waterbodies (near Seattle)
+These are useful for "clipping" census geographies whose boundaries extend into waterbodies.
+
+```{r misc-sea-water, fig.cap="Waterbodies near Seattle"}
+
+if(!file.exists(root_file('1-data/4-interim/wtr-sp.gpkg'))){
+        fp_wtr <- root_file('1-data/3-external/NHDMajor.gdb')
+
+# check if the file already exists, if not then download it
+if(!file.exists(fp_wtr)){
+        
+        url <- "ftp://www.ecy.wa.gov/gis_a/inlandWaters/NHD/NHDmajor.gdb.zip" # save the URL for the waterbodies data
+        
+        temp <- tempfile() # create a temporary file to hold the compressed download
+        
+        download(url, dest = temp, mode="wb") # download the file
+        
+        unzip (temp, exdir = root_file('1-data/3-external/')) # extract the ESRI geodatabase file to a project folder
+}
+
+wtr_sp <-
+        suppressWarnings(readOGR(dsn = fp_wtr,      # create a waterbodies shape
+                layer = "NHD_MajorWaterbodies",verbose = FALSE,pointDropZ = TRUE)) %>%
+        gBuffer(byid=TRUE, width=0) %>% # clean up self-intersecting polygons
+        spTransform(CRSobj = crs_proj)  # transform the projection to match the project projection
+        
+
+intersect <- gIntersects(sea_sp,wtr_sp,byid = TRUE) %>% as.vector()
+
+wtr_sp <- wtr_sp[intersect,] %>%
+        spTransform(CRSobj = crs_proj)
+
+
+
+writeOGR(obj = wtr_sp, dsn = root_file('1-data/4-interim/wtr-sp.gpkg'), 
+         layer = "wtr_sp", driver = "GPKG", verbose = FALSE, 
+         overwrite_layer = TRUE)
+}
+
+blue <- miscgis::miscgis_pals$tableau_cat[["blue"]]
+
+wtr_sp <- readOGR(dsn = root_file('1-data/4-interim/wtr-sp.gpkg'),
+                  layer = 'wtr_sp',
+                  verbose = FALSE,
+                  stringsAsFactors = FALSE) %>% spTransform(crs_proj)
+
+myLfltGrey() %>% 
+        addPolygons(data = wtr_sp,color = blue, opacity = 1, 
+                    weight = .5, fillColor = blue,fillOpacity = .5)        
+
+```
+
+### Seattle Land
+Seattle's boundary with waterbodies removed.
+
+```{r misc-sea-land, fig.cap="Seattle without waterbodies"}
+
+wtr_union_sp <- wtr_sp %>% gUnaryUnion()
+
+if(!file.exists(root_file('1-data/4-interim/sea-lnd-sp.gpkg'))){
+
+
+sea_lnd_sp <- miscgis::spClip(sea_sp,wtr_union_sp)
+
+# Save the object
+sea_lnd_sp %>% writeOGR(dsn = root_file('1-data/4-interim/sea-lnd-sp.gpkg'),
+                        layer = 'sea_lnd_sp',
+                        driver = 'GPKG',
+                        verbose = FALSE)
+        
+}else{
+        sea_lnd_sp <- readOGR(dsn = root_file('1-data/4-interim/sea-lnd-sp.gpkg'),
+                        layer = 'sea_lnd_sp',
+                        verbose = FALSE) %>% spTransform(crs_proj)
+}
+
+
+myLfltGrey() %>% addPolygons(data = sea_lnd_sp,color = green,opacity = 1,fillColor = green,fillOpacity = .5)
+
+```
+
+
+### Tracts in Seattle CCD
+
+#### Intro
+The Census tracts do not perfectly align with City's official boundary. As noted in the in a map produced by Seattle DPD (link below), Tracts 260.01, 264 and 265 extend beyond the boundary. The process below uses the Census's list of tracts 'within or partially-within' the city, which can be access using the [American Factfinder Tool](https://factfinder.census.gov/faces/nav/jsf/pages/index.xhtml). The process for accessing this data is explained in [here](http://www.seattle.gov/dpd/cs/groups/pan/@pan/documents/web_informational/dpdd017051.pdf).
+
+```{r misc-tracts-sea}
+
+if(!exists('tr_sea_sp')){
+        
+        if(!file.exists(root_file('1-data/4-interim/tr-sea-sp.gpkg'))){
+        
+        # Make a vector of the Seattle tract GEOIDs
+        tr_sea_geoid6 <- read_csv(root_file("/1-data/3-external/manual/DEC_10_SF1_H1_with_ann.csv"),
+                                 col_types = cols(Geography = col_skip(), 
+                                                  Id = col_skip(), 
+                                                  Id2 = col_character(),
+                                                  Total = col_skip()), 
+                                 skip = 1) %>%
+                        mutate(GEOID6 = str_sub(Id2, start= -6)) %>%
+                        select(GEOID6) %>%
+                        filter(GEOID6 %!in% "990100") %>% # this tract is the water around Seattle (population = 0)
+                        unlist(use.names = FALSE)
+        
+        # Download all census tracts in King County
+        
+        tr <- tigris::tracts(state = 53, county = 033) %>%
+                                        spTransform(CRSobj = crs_proj)
+        
+        # Subset polygons (only Seattle) 
+        
+        tr@data %<>%  mutate(GEOID6 = str_sub(GEOID, start= -6))
+        
+        tr %<>% 
+                subset(GEOID6 %in% tr_sea_geoid6) 
+         
+        tr %>% 
+                miscgis::spClip(wtr_union_sp) %>% 
+                writeOGR(dsn = root_file('1-data/4-interim/tr-sea-sp.gpkg'),
+                         layer = 'tr_sea_sp',
+                         driver = 'GPKG',
+                         verbose = FALSE)
+}
+        
+        
+        tr_sea_sp <- readOGR(dsn = root_file('1-data/4-interim/tr-sea-sp.gpkg'),
+                         layer = 'tr_sea_sp',
+                         verbose = FALSE,
+                         stringsAsFactors = FALSE) %>% spTransform(crs_proj)
+}
+
+myLfltGrey() %>% addPolygons(data = tr_sea_sp,
+                             smoothFactor = 0,
+                             fillOpacity = .25,
+                             fillColor = green,
+                             opacity = 1, 
+                             color = green, 
+                             weight = 1)
+
+
+```
