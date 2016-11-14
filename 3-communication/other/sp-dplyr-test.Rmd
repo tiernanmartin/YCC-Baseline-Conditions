@@ -23,6 +23,15 @@ nc_aggr <-
         nc_grp %>% 
         group_by(GRP) %>% 
         summarise_all(first)
+
+# This works, but I'm having trouble with other examples of the same process
+nc_both <- 
+        nc %>%  
+        mutate(GRP = ntile(BIR74,4)) %>% 
+        group_by(GRP) %>% 
+        summarise_all(first) %>% 
+        rbind(nc_grp)
+
 ```
 
 #### Loss of CRS

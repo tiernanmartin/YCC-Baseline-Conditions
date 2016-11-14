@@ -102,7 +102,7 @@ comb_long_sf <-
         mutate_at(matches('NAME'),replace_empty) %>% 
         mutate(geom = st_sfc(geom)) %>% 
         st_sf() %>% 
-        coerce_to_geom(st_multipolygon) %>% 
+        miscgis::coerce_to_geom(st_multipolygon) %>% 
         select(JOIN_ID,
                Variable,
                Estimate,

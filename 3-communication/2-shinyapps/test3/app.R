@@ -1,13 +1,56 @@
 # SETUP -----
+# library(scales)
+# library(shiny)
+# library(shinydashboard)
+# library(DT)
+# library(ggplot2)
+# library(tidyverse)
+# library(rprojroot)
+# library(miscgis)
+# library(shmodules) #devtools::install_github('tiernanmartin/shmodules')
 library(scales)
+library(sp)
+library(rgdal)
+library(plotly)
+library(gplots)
+library(ggplot2)
+library(GISTools)
+library(magrittr)
+library(operator.tools)
 library(shiny)
 library(shinydashboard)
 library(DT)
-library(ggplot2)
-library(tidyverse)
+library(leaflet)
+library(plyr)
+library(knitr)
 library(rprojroot)
+library(rgdal)
+library(sp)
+library(rgeos)
+library(tigris)
+library(leaflet)
+library(ggthemes)
+library(magrittr)
+library(stringr)
+library(downloader)
+library(webshot)
+library(htmltools)
+library(gplots)
+library(ggmap)
+library(shiny)
+library(htmlwidgets)
+library(readxl)
+library(acs)
+library(RColorBrewer)
+library(tidyverse)
+library(operator.tools)
+library(ggiraph)
+library(leaflet.extras)
+library(viridisLite)
+library(shmodules)
 library(miscgis)
-library(shmodules) #devtools::install_github('tiernanmartin/shmodules')
+library(tidyverse)
+library(sf)
 
 root <- rprojroot::is_rstudio_project
 root_file <- root$make_fix_file()
@@ -25,7 +68,10 @@ sidebar <- dashboardSidebar(
         ),
         HTML("<hr style='margin: 5px;height:1px;border-width:0;color:#404040;background-color:#404040'>"),
         HTML("<div style='padding-right: 25px;padding-left: 25px;'>"),
-        linkedBarMapSidebarTabContentUI('barmap1','Map with bar plot','first',poc_ycc_sp),
+        linkedBarMapSidebarTabContentUI(id = 'barmap1', 
+                                        menu_item_name = 'Map with bar plot', 
+                                        tab_name = 'first', 
+                                        vars = vars),
         HTML("</div>")
 )
 
@@ -46,8 +92,8 @@ server <- function(input, output, session) {
 
         callModule(module = linkedBarMap,
                    id = "barmap1",
-                   df = poc_ycc_df,
-                   sp_rx = reactive({poc_ycc_sp}),
+                   sf_rx = reactive({comb_long_sf}),
+                   vars = vars,
                    plotly_event_rx = reactive({plotly_event()})
         )
         # callModule(module = shmodules::linkedScatterMap,

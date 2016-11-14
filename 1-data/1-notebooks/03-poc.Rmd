@@ -194,16 +194,16 @@ view_poc_dotplot <- function() {
         gg
 }
 
-# view_poc_dotplot()
+view_poc_dotplot()
 
-view_poc_dotplot_int <- function() {
-        ggiraph(code = {
-                print(view_poc_dotplot())
-        }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
-        hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
-}
+# view_poc_dotplot_int <- function() {
+#         ggiraph(code = {
+#                 print(view_poc_dotplot())
+#         }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
+#         hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
+# }
 
-view_poc_dotplot_int()
+# view_poc_dotplot_int()
 ```
 
 ### Maps

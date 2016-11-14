@@ -190,21 +190,21 @@ view_low_inc_dotplot <- function() {
                          panel.grid.minor.x = element_blank(), 
                          axis.text.y = element_blank())
         gg <- gg + labs(x = NULL, y = NULL, title = "LOW-INCOME HOUSEHOLDS (%)", 
-                        subtitle = "Description", 
+                        subtitle = "Census Tracts", 
                         caption = "Source: ACS Table C17002, Five-Year Estimates (2010-2014)")
         gg
 }
 
-# view_low_inc_dotplot()
+view_low_inc_dotplot()
 
-view_low_inc_dotplot_int <- function() {
-        ggiraph(code = {
-                print(view_low_inc_dotplot())
-        }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
-        hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
-}
+# view_low_inc_dotplot_int <- function() {
+#         ggiraph(code = {
+#                 print(view_low_inc_dotplot())
+#         }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
+#         hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
+# }
 
-view_low_inc_dotplot_int()
+# view_low_inc_dotplot_int()
 ```
 
 ### Maps

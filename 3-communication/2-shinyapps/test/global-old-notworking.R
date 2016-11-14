@@ -121,23 +121,44 @@ linkedBarMap1 <- function (input, output, session, sp_rx, bar_df, plotly_event_r
         
         
         output$map <- renderLeaflet({
-                
-                var1 <- names(sp_rx())[[1]]
-                var1_type <- is.numeric(sp_rx()[[1]])
-                pal <- colorpal()
-
-                myLflt() %>% addPolygons(data = sp_rx(),
-                                         color = col2hex("white"),
-                                         opacity = 1,
-                                         weight = 0.5,
-                                         fillColor = pal(sp_rx()[[var1]]),
-                                         fillOpacity = 0.85, smoothFactor = 0, group = "main") %>%
-                        addLegend(position = "bottomleft", opacity = 0.85,
-                                  pal = pal(sp_rx()[[var1]]), values = sp_rx()[[var1]])
+                miscgis::myLfltGrey()
+                # # myYlOrRd <- RColorBrewer::brewer.pal(9, "YlOrRd")[2:7]
+                # var1 <- names(sp_rx())[[1]]
+                # var1_type <- is.numeric(sp_rx()[[1]])
+                # pal <- colorpal()
+                # 
+                # myLflt() %>% addPolygons(data = sp_rx(), 
+                #                          color = col2hex("white"), 
+                #                          opacity = 1, 
+                #                          weight = 0.5, 
+                #                          fillColor = pal(sp_rx()[[var1]]), 
+                #                          fillOpacity = 0.85, smoothFactor = 0, group = "main") %>% 
+                #         addLegend(position = "bottomleft", opacity = 0.85, 
+                #                   pal = pal(sp_rx()[[var1]]), values = sp_rx()[[var1]])
         })
-        output$bar <- renderPlot({
+        
+        # observe({
+        #         pal <- colorpal()
+        #         leafletProxy(ns("map")) %>% 
+        #                 clearShapes() %>% 
+        #                 clearControls() %>% 
+        #                 addPolygons(data = sp_rx(), 
+        #                             color = col2hex("white"), 
+        #                             opacity = 1, 
+        #                             weight = 0.5, 
+        #                             fillColor = pal(sp_rx()[[y_axis()]]), 
+        #                             fillOpacity = 0.85, 
+        #                             smoothFactor = 0) %>% 
+        #                 addLegend(position = "bottomleft", 
+        #                           opacity = 0.85, 
+        #                           pal = pal, 
+        #                           values = sp_rx()[[y_axis()]]) %>% 
+        #                 removeLayersControl()
+        # })
+        
+        output$bar <- renderPlotly({
                 
-                df <- sp_rx_id()@data %>% rename(NHOOD_ABBR = NAME)
+                df <- bar_df %>% rename(NHOOD_ABBR = NAME)
 
                 pal <- {
                         if (is.numeric(df[[y_axis()]])) {
@@ -151,9 +172,9 @@ linkedBarMap1 <- function (input, output, session, sp_rx, bar_df, plotly_event_r
 
                 gg1 <- ggplot(df) +
                         geom_bar(aes(x = df[[x_axis()]],
-                                     y = df[[y_axis()]]),
-                                     # fill = df[[y_axis()]],
-                                     # color = df[[y_axis()]]),
+                                     y = df[[y_axis()]],
+                                     fill = df[[y_axis()]],
+                                     color = df[[y_axis()]]),
                                  alpha = 1,
                                  stat = 'identity') +
                         xlab(x_axis()) +
@@ -180,19 +201,19 @@ linkedBarMap1 <- function (input, output, session, sp_rx, bar_df, plotly_event_r
 
                         }
                 }
-                gg
-                # g <- ggplotly(gg, source = 'source') %>%
-                #         layout(dragmode = 'select',
-                #                margin = list(
-                #                        l = 60,
-                #                        r = 50,
-                #                        b = 50,
-                #                        t = 50
-                #                ),
-                #                font = list(family = 'Open Sans', size = 16)) %>%
-                #         config(displaylogo = FALSE,displayModeBar = FALSE)
-                # 
-                # build <- plotly_build(g)
+                
+                g <- ggplotly(gg, source = 'source') %>%
+                        layout(dragmode = 'select',
+                               margin = list(
+                                       l = 60,
+                                       r = 50,
+                                       b = 50,
+                                       t = 50
+                               ),
+                               font = list(family = 'Open Sans', size = 16)) %>%
+                        config(displaylogo = FALSE,displayModeBar = FALSE)
+                
+                build <- plotly_build(g)
         # proj_light_grey <- col2hex("grey75")
         # proj_grey <- col2hex("grey50")
         # proj_dark_grey <- col2hex("grey25")
