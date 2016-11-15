@@ -83,10 +83,14 @@ tr_ca <- get_geoid(ycc_all_sf,'CA')
 tr_fh <- get_geoid(ycc_all_sf,'FH')
 tr_cid <- get_geoid(ycc_all_sf,'CID')
 tr_ycc <- get_geoid(ycc_all_sf,c('CH','CA','FH','CID'))
+tr_sea <- 
+        ycc_all_sf %>% 
+        filter(!is.na(GEOID6)) %>% 
+        transmute(GEOID6 = as.numeric(GEOID6)) %>% unlist(use.names = FALSE)
 #
 # Final Object
 ycc_geo_acs <- c(
-        acs::geo.make(state = "WA",county = "King", tract = as.numeric(ycc_all_sf$GEOID)),
+        acs::geo.make(state = "WA",county = "King", tract = tr_sea),
         acs::geo.make(state = "WA",county = "King", tract = tr_ch, combine = TRUE, combine.term = 'CH'),
         acs::geo.make(state = "WA",county = "King", tract =tr_ca, combine = TRUE, combine.term = 'CA'),
         acs::geo.make(state = "WA",county = "King", tract = tr_fh, combine = TRUE, combine.term = 'FH'),
@@ -94,6 +98,8 @@ ycc_geo_acs <- c(
         acs::geo.make(state = "WA",county = "King", tract = tr_ycc, combine = TRUE, combine.term = 'YCC'),
         acs::geo.make(state = 'WA', place = "Seattle")
 )
+
+
 
 ycc_geo_acs %>% write_rds(root_file('1-data/4-interim/ycc-geo-acs.rds'))
 
