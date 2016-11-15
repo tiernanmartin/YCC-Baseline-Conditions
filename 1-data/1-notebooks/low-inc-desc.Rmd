@@ -1,0 +1,13 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+url <- "http://nationalequityatlas.org/indicators/Working_poor"
+```
+
+#####Why it matters
+As the low-wage sector has grown, the share of adults who are working full-time jobs but still cannot make ends meet has increased, particularly among Latinos and other workers of color. The failure of even full-time work to pay family-supporting wages dampens the potential of millions of workers and our nation as a whole.
+
+Learn more: `r paste0("<a href=\"", url,"\"", "\ target=\"_blank", "\">", paste0("National Equity Atlas ",shiny::icon("external-link")), "</a>")`

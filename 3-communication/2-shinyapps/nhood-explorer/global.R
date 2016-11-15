@@ -78,18 +78,20 @@ linkedBarMapSidebarTabContentUI <-
                                                                   )),
                                                          # fluidRow(width = 12,plotOutput(ns('bar_test'), width = "100%")),
                                                          fluidRow(width = 12, plotlyOutput(ns("bar"),width = "auto")),
-                                                         fluidRow(width = 12,
-                                                                  fluidRow(
-                                                                          column(
-                                                                                  width = 12,
-                                                                                  selectizeInput(
-                                                                                          inputId = ns("x_axis"),
-                                                                                          label = "X Axis:",
-                                                                                          selected = vars[[1]],
-                                                                                          choices = vars
-                                                                                  )
-                                                                          )
-                                                                  ))
+                                                         fluidRow(width = 12, uiOutput(ns("var_text")))
+                                                         # fluidRow(width = 12,
+                                                         #          fluidRow(
+                                                         #                  column(
+                                                         #                          width = 12,
+                                                         #                          selectizeInput(
+                                                         #                                  inputId = ns("x_axis"),
+                                                         #                                  label = "X Axis:",
+                                                         #                                  selected = vars[[1]],
+                                                         #                                  choices = vars
+                                                         #                          )
+                                                         #                  )
+                                                         #          )
+                                                         #          )
                                                  ),
                                                  tabPanel(
                                                          title = "Style",
@@ -553,6 +555,18 @@ linkedBarMap <-
                         # build
 
                 })
+                
+                # Variable Text
+                output$var_text <- renderUI({
+                        file <- switch(input$y_axis,
+                                       'Low-Income' = root_file('1-data/1-notebooks/low-inc-desc.html'),
+                                       'People of Color' = root_file('1-data/1-notebooks/poc-desc.html'),
+                                       stop("Unknown option")
+                        )
+                        includeHTML(file)
+                })
+                
+                
                 # # Bar
                 # output$bar <- renderPlotly({
                 # 

@@ -54,7 +54,7 @@ library(sf)
 
 root <- rprojroot::is_rstudio_project
 root_file <- root$make_fix_file()
-source(root_file('3-communication/2-shinyapps/test3/global.R'))
+source(root_file('3-communication/2-shinyapps/nhood-explorer/global.R'))
 
 # UI -----
 
@@ -66,10 +66,12 @@ sidebar <- dashboardSidebar(
         sidebarMenu(id = 'menu',
                     shmodules::linkedBarMapSidebarTabUI('barmap1','Map with bar plot','first')
         ),
+        tags$style(HTML("p{font-size: 12px;}
+                        #barmap1-var_text{background-color: #1e282c;}")),
         HTML("<hr style='margin: 5px;height:1px;border-width:0;color:#404040;background-color:#404040'>"),
         HTML("<div style='padding-right: 25px;padding-left: 25px;'>"),
         linkedBarMapSidebarTabContentUI(id = 'barmap1', 
-                                        menu_item_name = 'Map with bar plot', 
+                                        menu_item_name = 'Map with simple dotplot', 
                                         tab_name = 'first', 
                                         vars = vars),
         HTML("</div>")
