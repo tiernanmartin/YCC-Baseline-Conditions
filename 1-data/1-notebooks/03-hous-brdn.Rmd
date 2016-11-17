@@ -8,7 +8,7 @@ output:
 always_allow_html: yes
 ---
 
-```{r work-poor-setup, echo = FALSE, warning=FALSE,message=FALSE,comment=FALSE}
+```{r hous-brdn-setup, echo = FALSE, warning=FALSE,message=FALSE,comment=FALSE}
 library(plyr)
 library(knitr)
 library(rprojroot)
@@ -51,78 +51,103 @@ kc_tr_acs <- acs::geo.make(state = "WA",county = "King", tract = "*")
 ```
 
 ### ACS Data
-```{r work-poor-acs}
+Housing-cost burdening processing steps:
+
+  1. Remove those not paying rent (`No cash rent`) from the total (`Total`)
+  2. Combine all households paying 30% or more of their income on housing (`30 percent or more`) and those with no income (`zero or negative income`): `30_PCT_PLUS`
+  3. Create a new total column (`TOTAL_REV`) that removes individuals who do not pay rent (`No cash rent`)
+  4. Calculate the percentage of households paying 30% or more of their income on housing: `30_PCT_PLUS / TOTAL_REV`
+```{r hous-brdn-acs}
 
 # Setup the ACS geographies: Seattle (tracts), YCC (tracts), Seattle (place)
 # -----------------------------------------------------------------------------
 
 ycc_geo_acs <- read_rds(path = root_file('1-data/4-interim/ycc-geo-acs.rds'))
 
-if(!file.exists(root_file('1-data/4-interim/work-poor-orig-acs.rds'))){
+if(!file.exists(root_file('1-data/4-interim/hous-brdn-orig-acs.rds'))){
         
-        tbl <- "C17002"  # census table code
+        tbl <- "B25106"  # census table code
         
         acs.fetch(endyear = 2014,
                   geography = ycc_geo_acs,
                   table.number = tbl) %>%
-                write_rds(root_file('1-data/4-interim/work-poor-orig-acs.rds'))
+                write_rds(root_file('1-data/4-interim/hous-brdn-orig-acs.rds'))
         
 }
 
-work_poor_orig_acs <- read_rds(root_file('1-data/4-interim/work-poor-orig-acs.rds'))
+housing_burden_orig_acs <- read_rds(root_file('1-data/4-interim/hous-brdn-orig-acs.rds'))
 
 
 # Process and save the data
 # -----------------------------------------------------------------------------
 
-if(!file.exists(root_file('1-data/4-interim/work-poor-acs.rds'))){
-        work_poor_acs1 <- work_poor_orig_acs
+if(!file.exists(root_file('1-data/4-interim/hous-brdn-acs.rds'))){
+        housing_burden_acs1 <- housing_burden_orig_acs
+        
+        guide <- 
+                data.frame(terse = acs.colnames(housing_burden_acs1),
+                       pretty = acs.colnames(acs.fetch(endyear = 2014, 
+                          geography = geo.make(us = TRUE), 
+                          table.number = tbl,col.names = 'pretty')))
+        # Pull out the specific columns that are important
+        
+        get_col <- function(pattern){
+                guide %>% filter(str_detect(pretty,pattern)) %>% select(terse) %>% unlist(use.names = FALSE) %>% as.character()
+        }
+        
+        total <- get_col('Total')
+        
+        no_rent <- get_col('No\\scash\\srent')
+        
+        thirty_plus <- get_col('30\\spercent|Zero')
+        
+        
+        # 1. Remove those not paying rent (`No cash rent`) from the total (`Total`)
 
-work_poor_acs2 <- work_poor_acs1[, "C17002_001"] - work_poor_acs1[, "C17002_008"] 
-                        
-acs.colnames(work_poor_acs2) <- "WORKING_POOR"
-                        
-work_poor_acs2 %<>%
-        cbind(work_poor_acs1, .)
-                        
-# Find the proportion of People of Color to the Total population
-work_poor_acs3 <-  
-        apply(
-                X = work_poor_acs2[, "WORKING_POOR"],
-                MARGIN = 1,
-                FUN = divide.acs,
-                denominator = work_poor_acs2[, 1],
-                method = "proportion",
-                verbose = FALSE
-        ) 
-                        
-acs.colnames(work_poor_acs3) <- "work_poor_PCT"
-
-work_poor_acs <- work_poor_acs3
-
+        acs_col_total_rev <- housing_burden_acs1[,total] - housing_burden_acs1[,no_rent]
+        acs.colnames(acs_col_total_rev) <- 'TOTAL_REV'
+        
+        
+        # 2. Combine all households paying 30% or more of their income on housing (`30 percent or more`) and those with no income (`zero or negative income`): `30_PCT_PLUS`
+        
+        acs_col_thirty_plus <- apply(X = housing_burden_acs1[,thirty_plus],
+                                      MARGIN = 2,
+                                      FUN = sum)
+        acs.colnames(acs_col_thirty_plus) <- 'THIRTY_PLUS'
+        
+        # 3. Calculate the percentage of households paying 30% or more of their income on housing: `30_PCT_PLUS / TOTAL_REV`
+        
+        acs_col_pct_brdnd <- cbind(acs_col_total_rev,acs_col_thirty_plus)
+        acs_col_pct_brdnd <-  
+                acs::apply(X = acs_col_pct_brdnd[,'THIRTY_PLUS'],
+                           MARGIN = 1,
+                           FUN = divide.acs,
+                           denominator = acs_col_pct_brdnd[,"TOTAL_REV"],
+                           method = "proportion",
+                           verbose = FALSE)
+        acs.colnames(acs_col_pct_brdnd) <- 'PCT_BURDENED'
+        
 # Save the object
 # -----------------------------------------------------------------------------
-
-work_poor_acs %>% saveRDS(root_file('1-data/4-interim/work-poor-acs.rds'))
+        
+        acs_col_pct_brdnd %>% write_rds(root_file('1-data/4-interim/hous-brdn-acs.rds'))
+        
 }
 
-work_poor_acs <- read_rds(root_file('1-data/4-interim/work-poor-acs.rds'))
+housing_burden_acs <- read_rds(root_file('1-data/4-interim/hous-brdn-acs.rds'))
 
 
 # Plot the data
 # -----------------------------------------------------------------------------
 
-plot(work_poor_acs)
-
-plot(work_poor_acs[order(estimate(work_poor_acs)),1])
-# plot(work_poor_acs[order(standard.error(work_poor_acs)),1])
+plot(housing_burden_acs[order(estimate(housing_burden_acs)),1])
 
 
 ```
 
 ### Simple Feature object
 
-```{r work-poor-sf}
+```{r hous-brdn-sf}
 
 # Read in the `sf` object and re-order the records to by `JOIN_ID` 
 # -----------------------------------------------------------------------------
@@ -136,17 +161,17 @@ ycc_all_sf_ordered <- ycc_all_sf %>% arrange(JOIN_ID) %>% select(-JOIN_ID)
 # Convert the `acs` object into a dataframe, join to sf object
 # -----------------------------------------------------------------------------
 
-ycc_work_poor_sf <- 
+ycc_housing_burden_sf <- 
         data.frame(
-                geography(work_poor_acs)["tract"],
-                estimate(work_poor_acs), 
-                1.645 * standard.error(work_poor_acs)) %>% 
-        `colnames<-`(., c("JOIN_ID", "WORK_POOR_PCT_EST","WORK_POOR_PCT_MOE")) %>% 
+                geography(housing_burden_acs)["tract"],
+                estimate(housing_burden_acs), 
+                1.645 * standard.error(housing_burden_acs)) %>% 
+        `colnames<-`(., c("JOIN_ID", "HOUS_BURDEN_PCT_EST","HOUS_BURDEN_PCT_MOE")) %>% 
         mutate(JOIN_ID = if_else(is.na(JOIN_ID),'SEA',JOIN_ID),
-               UPPER = WORK_POOR_PCT_EST + WORK_POOR_PCT_MOE, 
-               LOWER = WORK_POOR_PCT_EST - WORK_POOR_PCT_MOE, 
-               WORK_POOR_PCT_UPPER = if_else(UPPER > 1, 1, UPPER), 
-               WORK_POOR_PCT_LOWER = if_else(LOWER < 0, 0, LOWER)) %>% 
+               UPPER = HOUS_BURDEN_PCT_EST + HOUS_BURDEN_PCT_MOE, 
+               LOWER = HOUS_BURDEN_PCT_EST - HOUS_BURDEN_PCT_MOE, 
+               HOUS_BURDEN_PCT_UPPER = if_else(UPPER > 1, 1, UPPER), 
+               HOUS_BURDEN_PCT_LOWER = if_else(LOWER < 0, 0, LOWER)) %>% 
         select(JOIN_ID,everything(),-UPPER,-LOWER) %>% 
         arrange(JOIN_ID) %>% 
         bind_cols(ycc_all_sf_ordered) %>% 
@@ -155,7 +180,7 @@ ycc_work_poor_sf <-
 #
 # Save the object
 # -----------------------------------------------------------------------------
-ycc_work_poor_sf %>% write_rds(root_file('1-data/4-interim/work-poor-sf.rds'))
+ycc_housing_burden_sf %>% write_rds(root_file('1-data/4-interim/hous-brdn-sf.rds'))
 
 ```
 
@@ -164,19 +189,19 @@ ycc_work_poor_sf %>% write_rds(root_file('1-data/4-interim/work-poor-sf.rds'))
 Usage note: hovering a mouse cursor over a point reveal the name of the geography (e.g., a census tract ID or a neighborhood's name)
 
 Notice the large error for Tract 53.02 (University District) - this reflects the large student population which drives down the census sample size.
-```{r dotplot-work-poor-sf}
+```{r dotplot-hous-brdn-sf}
 
 # Show dotplot with variance
 # -----------------------------------------------------------------------------
 
-view_work_poor_dotplot <- function() {
+view_housing_burden_dotplot <- function() {
         
-        df <- ycc_work_poor_sf %>% select(-geom) %>% as.data.frame()
+        df <- ycc_housing_burden_sf %>% select(-geom) %>% as.data.frame()
         
         gg <- ggplot(df, aes(x = reorder(JOIN_ID, 
-                                             WORK_POOR_PCT_EST), y = WORK_POOR_PCT_EST))
-        gg <- gg + geom_linerange(aes(ymin = WORK_POOR_PCT_LOWER, 
-                                      ymax = WORK_POOR_PCT_UPPER), size = 1.5, alpha = 0.25)
+                                             HOUS_BURDEN_PCT_EST), y = HOUS_BURDEN_PCT_EST))
+        gg <- gg + geom_linerange(aes(ymin = HOUS_BURDEN_PCT_LOWER, 
+                                      ymax = HOUS_BURDEN_PCT_UPPER), size = 1.5, alpha = 0.25)
         gg <- gg + geom_point_interactive(aes(tooltip = JOIN_ID), 
                                           size = 3, shape = 21, color = "white", fill = "grey30")
         gg <- gg + scale_x_discrete(expand = c(0.01, 
@@ -190,22 +215,22 @@ view_work_poor_dotplot <- function() {
                                                            color = "grey30"), 
                          panel.grid.minor.x = element_blank(), 
                          axis.text.y = element_blank())
-        gg <- gg + labs(x = NULL, y = NULL, title = "WORKING POOR (%)", 
+        gg <- gg + labs(x = NULL, y = NULL, title = "Housing-Cost Burdened (%)", 
                         subtitle = "Census Tracts", 
-                        caption = "Source: ACS Table C17002, Five-Year Estimates (2010-2014)")
+                        caption = "Source: ACS Table B25106, Five-Year Estimates (2010-2014)")
         gg
 }
 
-view_work_poor_dotplot()
+view_housing_burden_dotplot()
 
-# view_work_poor_dotplot_int <- function() {
+# view_housing_burden_dotplot_int <- function() {
 #         ggiraph(code = {
-#                 print(view_work_poor_dotplot())
+#                 print(view_housing_burden_dotplot())
 #         }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
 #         hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
 # }
 
-# view_work_poor_dotplot_int()
+# view_housing_burden_dotplot_int()
 ```
 
 ### Maps
@@ -215,23 +240,23 @@ This map shows the proportion of pocome households for each census tract in Seat
 ```{r census-geos-tr-map}
 
 tr <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'tract')
 
-pal <- colorNumeric(viridis(256, option = "C"),tr$WORK_POOR_PCT_EST)
+pal <- colorNumeric(viridis(256, option = "C"),tr$HOUS_BURDEN_PCT_EST)
 
 myLfltGrey() %>% 
         addPolygons(data = as(tr,'Spatial'),
                 fillOpacity = .75,
-                fillColor = ~pal(WORK_POOR_PCT_EST),
+                fillColor = ~pal(HOUS_BURDEN_PCT_EST),
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
-        addLegend(title = "Working Poor",
+        addLegend(title = "Housing-Cost Burdened",
                   position = 'topright',
                   pal = pal, 
-                  values = tr$WORK_POOR_PCT_EST,
+                  values = tr$HOUS_BURDEN_PCT_EST,
                   opacity = .75,
                   labFormat = labelFormat(suffix = '%',transform = function(x) 100 * x))
 
@@ -243,22 +268,22 @@ This map reflects the
 ```{r census-geos-ycc-nhood-map}
 
 ycc_geoids <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(!is.na(NAME)) %>% 
         filter(!is.na(GEOID)) %>% 
         select(GEOID) %>% unlist(use.names = FALSE)
 
 tr <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'tract')
 
 tr_no_ycc <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'tract') %>% 
         filter(GEOID %!in% ycc_geoids)
 
 nhood <-
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'neighborhood') 
 
 cnt <- nhood %>% st_union() %>% st_centroid()
@@ -267,28 +292,28 @@ lng <- st_bbox(cnt)['xmin'][[1]]
 
 lat <- st_bbox(cnt)['ymin'][[1]]
 
-pal <- colorNumeric(viridis(256, option = "C"),tr$WORK_POOR_PCT_EST)
+pal <- colorNumeric(viridis(256, option = "C"),tr$HOUS_BURDEN_PCT_EST)
 
 myLfltGrey() %>% 
         addPolygons(data = as(tr_no_ycc,'Spatial'),
                 fillOpacity = .5,
-                fillColor = ~pal(WORK_POOR_PCT_EST),
+                fillColor = ~pal(HOUS_BURDEN_PCT_EST),
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
          addPolygons(data = as(nhood, 'Spatial'),
-                fillColor = ~pal(WORK_POOR_PCT_EST), 
+                fillColor = ~pal(HOUS_BURDEN_PCT_EST), 
                 fillOpacity = .75,
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
         setView(lng = lng,lat = lat,zoom = 13) %>% 
-        addLegend(title = "Working Poor",
+        addLegend(title = "Housing-Cost Burdened",
                   position = 'topright',
                   pal = pal, 
-                  values = tr$WORK_POOR_PCT_EST,
+                  values = tr$HOUS_BURDEN_PCT_EST,
                   opacity = .75,
                   labFormat = labelFormat(suffix = '%',transform = function(x) 100 * x))
        
@@ -299,22 +324,22 @@ myLfltGrey() %>%
 ```{r census-geos-ycc-map}
 
 ycc_geoids <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(!is.na(NAME)) %>% 
         filter(!is.na(GEOID)) %>% 
         select(GEOID) %>% unlist(use.names = FALSE)
 
 tr <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'tract')
 
 tr_no_ycc <- 
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'tract') %>% 
         filter(GEOID %!in% ycc_geoids)
 
 ycc <-
-        ycc_work_poor_sf %>% 
+        ycc_housing_burden_sf %>% 
         filter(GEOGRAPHY == 'neighborhood group') 
 
 cnt <- nhood %>% st_union() %>% st_centroid()
@@ -323,28 +348,28 @@ lng <- st_bbox(cnt)['xmin'][[1]]
 
 lat <- st_bbox(cnt)['ymin'][[1]]
 
-pal <- colorNumeric(viridis(256, option = "C"),tr$WORK_POOR_PCT_EST)
+pal <- colorNumeric(viridis(256, option = "C"),tr$HOUS_BURDEN_PCT_EST)
 
 myLfltGrey() %>% 
         addPolygons(data = as(tr_no_ycc,'Spatial'),
                 fillOpacity = .5,
-                fillColor = ~pal(WORK_POOR_PCT_EST),
+                fillColor = ~pal(HOUS_BURDEN_PCT_EST),
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
          addPolygons(data = as(ycc, 'Spatial'),
-                fillColor = ~pal(WORK_POOR_PCT_EST), 
+                fillColor = ~pal(HOUS_BURDEN_PCT_EST), 
                 fillOpacity = .75,
                 color = col2hex('white'),
                 opacity = 1,
                 weight = .5,
                 smoothFactor = 0) %>% 
         setView(lng = lng,lat = lat,zoom = 13) %>% 
-        addLegend(title = "Working Poor",
+        addLegend(title = "Housing-Cost Burdened",
                   position = 'topright',
                   pal = pal, 
-                  values = tr$WORK_POOR_PCT_EST,
+                  values = tr$HOUS_BURDEN_PCT_EST,
                   opacity = .75,
                   labFormat = labelFormat(suffix = '%',transform = function(x) 100 * x))
        

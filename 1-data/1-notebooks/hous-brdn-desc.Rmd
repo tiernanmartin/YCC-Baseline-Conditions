@@ -1,0 +1,13 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+url <- "http://nationalequityatlas.org/indicators/Housing_burden"
+```
+
+#####Why it matters
+Housing is the single largest expense for households, and far too many pay too much for housing, particularly low-income families and households of color. High housing costs squeeze household budgets leaving few resources to pay for other expenses, save for emergencies, or make long-term investments.
+
+Learn more: `r paste0("<a href=\"", url,"\"", "\ target=\"_blank", "\">", paste0("National Equity Atlas ",shiny::icon("external-link")), "</a>")`

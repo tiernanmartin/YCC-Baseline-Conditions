@@ -89,8 +89,9 @@ comb_long_sf <-
         combined_sf %>%
         mutate_if(is.factor,as.character) %>% 
         gather(VAR,PCT,matches('EST|MOE|UPPER|LOWER')) %>% 
-        mutate(Variable = case_when(str_detect(.$VAR,'LOW_INC') ~ 'Low-Income',
-                                    str_detect(.$VAR,'POC') ~ 'People_of_Color'),
+        mutate(Variable = case_when(str_detect(.$VAR,'WORK_POOR') ~ 'Working_Poor',
+                                    str_detect(.$VAR,'POC') ~ 'People_of_Color',
+                                    str_detect(.$VAR,'HOUS_BURDEN') ~ 'Housing_Cost_Burdened'),
                PCT_TYPE = case_when(str_detect(.$VAR,'EST') ~ 'Estimate',
                                     str_detect(.$VAR,'MOE') ~ 'Margin_of_Error',
                                     str_detect(.$VAR,'UPPER') ~ 'Upper_Confint',
