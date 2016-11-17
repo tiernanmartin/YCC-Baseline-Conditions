@@ -1,13 +1,4 @@
 # SETUP -----
-# library(scales)
-# library(shiny)
-# library(shinydashboard)
-# library(DT)
-# library(ggplot2)
-# library(tidyverse)
-# library(rprojroot)
-# library(miscgis)
-# library(shmodules) #devtools::install_github('tiernanmartin/shmodules')
 library(scales)
 library(sp)
 library(rgdal)
@@ -47,7 +38,7 @@ library(operator.tools)
 library(ggiraph)
 library(leaflet.extras)
 library(viridisLite)
-library(shmodules)
+library(shmodules) #devtools::install_github('tiernanmartin/shmodules')
 library(miscgis)
 library(tidyverse)
 library(sf)
@@ -67,7 +58,7 @@ sidebar <- dashboardSidebar(
                     shmodules::linkedBarMapSidebarTabUI('barmap1','Map with bar plot','first')
         ),
         tags$style(HTML("p{font-size: 12px;}
-                        #barmap1-var_text{background-color: #1e282c;}")),
+                        #barmap1-var_text{background-color: #1e282c;margin-top: 15px;}")),
         HTML("<hr style='margin: 5px;height:1px;border-width:0;color:#404040;background-color:#404040'>"),
         HTML("<div style='padding-right: 25px;padding-left: 25px;'>"),
         linkedBarMapSidebarTabContentUI(id = 'barmap1', 

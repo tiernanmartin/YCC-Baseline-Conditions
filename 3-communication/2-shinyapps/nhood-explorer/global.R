@@ -76,22 +76,8 @@ linkedBarMapSidebarTabContentUI <-
                                                                                   choices = vars
                                                                           )
                                                                   )),
-                                                         # fluidRow(width = 12,plotOutput(ns('bar_test'), width = "100%")),
                                                          fluidRow(width = 12, plotlyOutput(ns("bar"),width = "auto")),
                                                          fluidRow(width = 12, uiOutput(ns("var_text")))
-                                                         # fluidRow(width = 12,
-                                                         #          fluidRow(
-                                                         #                  column(
-                                                         #                          width = 12,
-                                                         #                          selectizeInput(
-                                                         #                                  inputId = ns("x_axis"),
-                                                         #                                  label = "X Axis:",
-                                                         #                                  selected = vars[[1]],
-                                                         #                                  choices = vars
-                                                         #                          )
-                                                         #                  )
-                                                         #          )
-                                                         #          )
                                                  ),
                                                  tabPanel(
                                                          title = "Style",
@@ -375,7 +361,7 @@ linkedBarMap <-
                                 ggX <- ggX + geom_text(data = sf_rx_bar_sea_lbl(),
                                                        aes(x = sf_rx_bar_sea_lbl()[['NAME_FCT_YCC']],
                                                            y = sf_rx_bar_sea_lbl()[['Estimate']],
-                                                           label = paste("Seattle Avg.: ",
+                                                           label = paste("Seattle Avg: ",
                                                                            scales::percent_format()(sf_rx_bar_sea_lbl()[['Estimate']])),
                                                            colour = sf_rx_bar_sea_lbl()[['Estimate']]),
                                         size = 3,nudge_y = -0.05
@@ -529,38 +515,15 @@ linkedBarMap <-
                                              displayModeBar = FALSE) %>% 
                                 plotly_build()
                         
-                        # plotly_build(ggplotly(gg, tooltip = c('text')))
-                        
-                        
-                        
-
-                        # g <- ggplotly(gg) %>% layout(
-                        #                 dragmode = "select",
-                        #                 margin = list(
-                        #                         l = 60,
-                        #                         r = 50,
-                        #                         b = 50,
-                        #                         t = 50
-                        #                 ),
-                        #                 font = list(family = "Open Sans",
-                        #                             size = 16)
-                        #         ) %>% config(displaylogo = FALSE,
-                        #                      displayModeBar = FALSE)
-                        # 
-                        # build <- plotly_build(g)
-                        
-                        # build$x$data[[1]]$text <- paste0("test") 
-                        # build$data[[1]]$text <- paste0(scales::percent_format()(sf_rx_bar_ycc()[['Estimate']])) 
-                        
-                        # build
 
                 })
                 
                 # Variable Text
                 output$var_text <- renderUI({
                         file <- switch(input$y_axis,
-                                       'Low-Income' = root_file('1-data/1-notebooks/low-inc-desc.html'),
+                                       'Working Poor' = root_file('1-data/1-notebooks/work-poor-desc.html'),
                                        'People of Color' = root_file('1-data/1-notebooks/poc-desc.html'),
+                                       'Housing Cost Burdened' = root_file('1-data/1-notebooks/hous-brdn-desc.html'),
                                        stop("Unknown option")
                         )
                         includeHTML(file)
