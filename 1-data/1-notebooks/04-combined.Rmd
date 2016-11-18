@@ -91,7 +91,8 @@ comb_long_sf <-
         gather(VAR,PCT,matches('EST|MOE|UPPER|LOWER')) %>% 
         mutate(Variable = case_when(str_detect(.$VAR,'WORK_POOR') ~ 'Working_Poor',
                                     str_detect(.$VAR,'POC') ~ 'People_of_Color',
-                                    str_detect(.$VAR,'HOUS_BURDEN') ~ 'Housing_Cost_Burdened'),
+                                    str_detect(.$VAR,'HOUS_BURDEN') ~ 'Housing_Cost_Burdened',
+                                    str_detect(.$VAR,'LMTD_ENG') ~ 'Limited_English'),
                PCT_TYPE = case_when(str_detect(.$VAR,'EST') ~ 'Estimate',
                                     str_detect(.$VAR,'MOE') ~ 'Margin_of_Error',
                                     str_detect(.$VAR,'UPPER') ~ 'Upper_Confint',

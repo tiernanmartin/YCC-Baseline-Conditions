@@ -1,0 +1,13 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+url <- "https://www.socialexplorer.com/data/ACS2013/documentation/8ce03818-b8b2-4772-a441-ad10d7683c65#3299dc73-71c7-4e7f-bfb7-75ecaf0b5e57"
+```
+
+#####Why it matters
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus auctor mattis mi non pharetra. Nulla iaculis ut risus a maximus. In iaculis, sem a condimentum dictum, mauris ante blandit felis, eu placerat mi ante in mauris. Curabitur et facilisis sapien, vel luctus ligula.
+
+Learn more: `r paste0("<a href=\"", url,"\"", "\ target=\"_blank", "\">", paste0("Social Explorer Tool ",shiny::icon("external-link")), "</a>")`

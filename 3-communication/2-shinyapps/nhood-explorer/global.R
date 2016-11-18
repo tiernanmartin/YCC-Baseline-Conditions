@@ -524,6 +524,7 @@ linkedBarMap <-
                                        'Working Poor' = root_file('1-data/1-notebooks/work-poor-desc.html'),
                                        'People of Color' = root_file('1-data/1-notebooks/poc-desc.html'),
                                        'Housing Cost Burdened' = root_file('1-data/1-notebooks/hous-brdn-desc.html'),
+                                       'Limited English' = root_file('1-data/1-notebooks/lmtd-eng-desc.html'),
                                        stop("Unknown option")
                         )
                         includeHTML(file)
