@@ -83,8 +83,6 @@ replace_empty <- function(x){
         ifelse(nchar(x)==0,NA_character_,x)
 }
 
-
-
 comb_long_sf <- 
         combined_sf %>%
         mutate_if(is.factor,as.character) %>% 
@@ -92,7 +90,9 @@ comb_long_sf <-
         mutate(Variable = case_when(str_detect(.$VAR,'WORK_POOR') ~ 'Working_Poor',
                                     str_detect(.$VAR,'POC') ~ 'People_of_Color',
                                     str_detect(.$VAR,'HOUS_BURDEN') ~ 'Housing_Cost_Burdened',
-                                    str_detect(.$VAR,'LMTD_ENG') ~ 'Limited_English'),
+                                    str_detect(.$VAR,'LMTD_ENG') ~ 'Limited_English',
+                                    str_detect(.$VAR,'FRN_BORN') ~ 'Foreign_Born',
+                                    str_detect(.$VAR,'UNEMPLOYED') ~ 'Unemployment'),
                PCT_TYPE = case_when(str_detect(.$VAR,'EST') ~ 'Estimate',
                                     str_detect(.$VAR,'MOE') ~ 'Margin_of_Error',
                                     str_detect(.$VAR,'UPPER') ~ 'Upper_Confint',

@@ -1,0 +1,356 @@
+---
+df_print: tibble
+output:
+  html_notebook:
+    code_folding: hide
+  pdf_document:
+    keep_tex: yes
+always_allow_html: yes
+---
+
+```{r unemployed-setup, echo = FALSE, warning=FALSE,message=FALSE,comment=FALSE}
+library(plyr)
+library(knitr)
+library(rprojroot)
+library(rgdal)
+library(sp)
+library(rgeos)
+library(tigris)
+library(leaflet)
+library(ggthemes)
+library(magrittr)
+library(stringr)
+library(downloader)
+library(webshot)
+library(htmltools)
+library(gplots)
+library(ggmap)
+library(shiny)
+library(htmlwidgets)
+library(readxl)
+library(acs)
+library(RColorBrewer)
+library(tidyverse)
+library(miscgis)
+library(operator.tools)
+library(ggiraph)
+library(leaflet.extras)
+library(viridisLite)
+library(sf)
+root <- rprojroot::is_rstudio_project
+root_file <- root$make_fix_file()
+opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE, comment=FALSE)
+green <- miscgis::miscgis_pals$tableau_cat[["green"]]
+blue <- miscgis::miscgis_pals$tableau_cat[["blue"]]
+orange <- miscgis::miscgis_pals$tableau_cat[["orange"]]
+red <- miscgis::miscgis_pals$tableau_cat[["red"]]
+teal <- miscgis::miscgis_pals$tableau_cat[["teal"]]
+pal_rgb_4 <- miscgis_pals$tableau_cat[c("red","gold","green","blue")] %>% unlist %>% palette()
+kc_tr_acs <- acs::geo.make(state = "WA",county = "King", tract = "*")
+
+```
+
+### ACS Data
+Linguistic isolation processing steps:
+  1. 
+```{r unemployed-acs}
+
+# Setup the ACS geographies: Seattle (tracts), YCC (tracts), Seattle (place)
+# -----------------------------------------------------------------------------
+
+ycc_geo_acs <- read_rds(path = root_file('1-data/4-interim/ycc-geo-acs.rds'))
+
+if(!file.exists(root_file('1-data/4-interim/unemployed-orig-acs.rds'))){
+        
+        tbl <- "B23025"  # census table code
+        
+        acs.fetch(endyear = 2014,
+                  geography = ycc_geo_acs,
+                  table.number = tbl) %>%
+                write_rds(root_file('1-data/4-interim/unemployed-orig-acs.rds'))
+        
+}
+
+unemployedorig_acs <- read_rds(root_file('1-data/4-interim/unemployed-orig-acs.rds'))
+
+
+# Process and save the data
+# -----------------------------------------------------------------------------
+
+if(!file.exists(root_file('1-data/4-interim/unemployed-acs.rds'))){
+        unemployedacs1 <- unemployedorig_acs
+        
+        guide <- 
+                data.frame(terse = acs.colnames(unemployedacs1),
+                       pretty = acs.colnames(acs.fetch(endyear = 2014, 
+                          geography = geo.make(us = TRUE), 
+                          table.number = tbl,col.names = 'pretty')))
+        # Pull out the specific columns that are important
+        
+        get_col <- function(pattern){
+                guide %>% filter(str_detect(pretty,pattern)) %>% select(terse) %>% unlist(use.names = FALSE) %>% as.character()
+        }
+        
+        total <- get_col('Total')
+        
+        unemp <- get_col('Unemployed')
+        
+        
+        # 1. Calculate the percentage of foreign born individuals: `UNEMPLOYED / TOTAL`
+        
+        acs_col_pct_unemployed <-  
+                acs::apply(X = unemployedacs1[,unemp],
+                           MARGIN = 1,
+                           FUN = divide.acs,
+                           denominator = unemployedacs1[,total],
+                           method = "proportion",
+                           verbose = FALSE)
+        acs.colnames(acs_col_pct_unemployed) <- 'PCT_UNEMPLOYED'
+        
+# Save the object
+# -----------------------------------------------------------------------------
+        
+        acs_col_pct_unemployed %>% write_rds(root_file('1-data/4-interim/unemployed-acs.rds'))
+        
+}
+
+unemployedacs <- read_rds(root_file('1-data/4-interim/unemployed-acs.rds'))
+
+
+# Plot the data
+# -----------------------------------------------------------------------------
+
+plot(unemployedacs[order(estimate(unemployedacs)),1])
+
+
+```
+
+### Simple Feature object
+
+```{r unemployed-sf}
+
+# Read in the `sf` object and re-order the records to by `JOIN_ID` 
+# -----------------------------------------------------------------------------
+
+ycc_all_sf <- 
+        read_rds(root_file('1-data/4-interim/ycc-all-sf.rds'))
+
+ycc_all_sf_ordered <- ycc_all_sf %>% arrange(JOIN_ID) %>% select(-JOIN_ID)
+
+#
+# Convert the `acs` object into a dataframe, join to sf object
+# -----------------------------------------------------------------------------
+
+ycc_unemployedsf <- 
+        data.frame(
+                geography(unemployedacs)["tract"],
+                estimate(unemployedacs), 
+                1.645 * standard.error(unemployedacs)) %>% 
+        `colnames<-`(., c("JOIN_ID", "UNEMPLOYED_PCT_EST","UNEMPLOYED_PCT_MOE")) %>% 
+        mutate(JOIN_ID = if_else(is.na(JOIN_ID),'SEA',JOIN_ID),
+               UPPER = UNEMPLOYED_PCT_EST + UNEMPLOYED_PCT_MOE, 
+               LOWER = UNEMPLOYED_PCT_EST - UNEMPLOYED_PCT_MOE, 
+               UNEMPLOYED_PCT_UPPER = if_else(UPPER > 1, 1, UPPER), 
+               UNEMPLOYED_PCT_LOWER = if_else(LOWER < 0, 0, LOWER)) %>% 
+        select(JOIN_ID,everything(),-UPPER,-LOWER) %>% 
+        arrange(JOIN_ID) %>% 
+        bind_cols(ycc_all_sf_ordered) %>% 
+        st_sf()
+
+#
+# Save the object
+# -----------------------------------------------------------------------------
+ycc_unemployedsf %>% write_rds(root_file('1-data/4-interim/unemployed-sf.rds'))
+
+```
+
+
+### Dotplot (with variance)
+Usage note: hovering a mouse cursor over a point reveal the name of the geography (e.g., a census tract ID or a neighborhood's name)
+
+Notice the large error for Tract 53.02 (University District) - this reflects the large student population which drives down the census sample size.
+```{r dotplot-unemployed-sf}
+
+# Show dotplot with variance
+# -----------------------------------------------------------------------------
+
+view_unemployeddotplot <- function() {
+        
+        df <- ycc_unemployedsf %>% select(-geom) %>% as.data.frame()
+        
+        gg <- ggplot(df, aes(x = reorder(JOIN_ID, 
+                                             UNEMPLOYED_PCT_EST), y = UNEMPLOYED_PCT_EST))
+        gg <- gg + geom_linerange(aes(ymin = UNEMPLOYED_PCT_LOWER, 
+                                      ymax = UNEMPLOYED_PCT_UPPER), size = 1.5, alpha = 0.25)
+        gg <- gg + geom_point(size = 3, shape = 21, color = "white", fill = "grey30")
+        gg <- gg + scale_x_discrete(expand = c(0.01, 
+                                               0))
+        gg <- gg + scale_y_continuous(labels = scales::percent)
+        gg <- gg + coord_flip()
+        gg <- gg + theme_minimal()
+        gg <- gg + theme(panel.grid.major.y = element_blank(), 
+                         panel.grid.minor.y = element_blank(), 
+                         panel.grid.major.x = element_line(linetype = 3, 
+                                                           color = "grey30"), 
+                         panel.grid.minor.x = element_blank(), 
+                         axis.text.y = element_blank())
+        gg <- gg + labs(x = NULL, y = NULL, title = "Unemployment (%)", 
+                        subtitle = "Census Tracts", 
+                        caption = "Source: ACS Table B25106, Five-Year Estimates (2010-2014)")
+        gg
+}
+
+view_unemployeddotplot()
+
+# view_unemployeddotplot_int <- function() {
+#         ggiraph(code = {
+#                 print(view_unemployeddotplot())
+#         }, width = 0.66, tooltip_extra_css = "padding:2px;background:rgba(70,70,70,0.1);color:black;border-radius:2px 2px 2px 2px;", 
+#         hover_css = "fill:#1279BF;stroke:#1279BF;cursor:pointer;")
+# }
+
+# view_unemployeddotplot_int()
+```
+
+### Maps
+
+#### Seattle Tracts
+This map shows the proportion of pocome households for each census tract in Seattle.
+```{r census-geos-tr-map}
+
+tr <- 
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'tract')
+
+pal <- colorNumeric(viridis(256, option = "C"),tr$UNEMPLOYED_PCT_EST)
+
+myLfltGrey() %>% 
+        addPolygons(data = as(tr,'Spatial'),
+                fillOpacity = .75,
+                fillColor = ~pal(UNEMPLOYED_PCT_EST),
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        addLegend(title = "Unemployment",
+                  position = 'topright',
+                  pal = pal, 
+                  values = tr$UNEMPLOYED_PCT_EST,
+                  opacity = .75,
+                  labFormat = labelFormat(suffix = '%',transform = function(x) 100 * x))
+
+
+```
+
+#### YCC Tract-Neighborhoods
+This map reflects the 
+```{r census-geos-ycc-nhood-map}
+
+ycc_geoids <- 
+        ycc_unemployedsf %>% 
+        filter(!is.na(NAME)) %>% 
+        filter(!is.na(GEOID)) %>% 
+        select(GEOID) %>% unlist(use.names = FALSE)
+
+tr <- 
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'tract')
+
+tr_no_ycc <- 
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'tract') %>% 
+        filter(GEOID %!in% ycc_geoids)
+
+nhood <-
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'neighborhood') 
+
+cnt <- nhood %>% st_union() %>% st_centroid()
+
+lng <- st_bbox(cnt)['xmin'][[1]]
+
+lat <- st_bbox(cnt)['ymin'][[1]]
+
+pal <- colorNumeric(viridis(256, option = "C"),tr$UNEMPLOYED_PCT_EST)
+
+myLfltGrey() %>% 
+        addPolygons(data = as(tr_no_ycc,'Spatial'),
+                fillOpacity = .5,
+                fillColor = ~pal(UNEMPLOYED_PCT_EST),
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+         addPolygons(data = as(nhood, 'Spatial'),
+                fillColor = ~pal(UNEMPLOYED_PCT_EST), 
+                fillOpacity = .75,
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        setView(lng = lng,lat = lat,zoom = 13) %>% 
+        addLegend(title = "Unemployment",
+                  position = 'topright',
+                  pal = pal, 
+                  values = tr$UNEMPLOYED_PCT_EST,
+                  opacity = .75,
+                  labFormat = labelFormat(suffix = '%',transform = function(x) 100 * x))
+       
+
+```
+
+#### YCC Neighborhood Group
+```{r census-geos-ycc-map}
+
+ycc_geoids <- 
+        ycc_unemployedsf %>% 
+        filter(!is.na(NAME)) %>% 
+        filter(!is.na(GEOID)) %>% 
+        select(GEOID) %>% unlist(use.names = FALSE)
+
+tr <- 
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'tract')
+
+tr_no_ycc <- 
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'tract') %>% 
+        filter(GEOID %!in% ycc_geoids)
+
+ycc <-
+        ycc_unemployedsf %>% 
+        filter(GEOGRAPHY == 'neighborhood group') 
+
+cnt <- nhood %>% st_union() %>% st_centroid()
+
+lng <- st_bbox(cnt)['xmin'][[1]]
+
+lat <- st_bbox(cnt)['ymin'][[1]]
+
+pal <- colorNumeric(viridis(256, option = "C"),tr$UNEMPLOYED_PCT_EST)
+
+myLfltGrey() %>% 
+        addPolygons(data = as(tr_no_ycc,'Spatial'),
+                fillOpacity = .5,
+                fillColor = ~pal(UNEMPLOYED_PCT_EST),
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+         addPolygons(data = as(ycc, 'Spatial'),
+                fillColor = ~pal(UNEMPLOYED_PCT_EST), 
+                fillOpacity = .75,
+                color = col2hex('white'),
+                opacity = 1,
+                weight = .5,
+                smoothFactor = 0) %>% 
+        setView(lng = lng,lat = lat,zoom = 13) %>% 
+        addLegend(title = "Unemployment",
+                  position = 'topright',
+                  pal = pal, 
+                  values = tr$UNEMPLOYED_PCT_EST,
+                  opacity = .75,
+                  labFormat = labelFormat(suffix = '%',transform = function(x) 100 * x))
+       
+
+```

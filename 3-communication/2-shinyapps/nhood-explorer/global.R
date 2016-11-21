@@ -68,7 +68,7 @@ linkedBarMapSidebarTabContentUI <-
                                                          title = "Explore",
                                                          fluidRow(width = 12,
                                                                   columnStyle(
-                                                                          width = 9,
+                                                                          width = 10,
                                                                           selectizeInput(
                                                                                   inputId = ns("y_axis"),
                                                                                   label = "Select a variable (Y Axis):",
@@ -250,7 +250,8 @@ linkedBarMap <-
                                         pal = pal,
                                         values = sf_all$Estimate
                                 ) %>%
-                                addLayersControl(overlayGroups = map_layers,
+                                addLayersControl(baseGroups = map_layers[[1]],
+                                                 overlayGroups = map_layers[[2]],
                                                  position = 'topright',
                                                  options = layersControlOptions(collapsed = FALSE,autoZIndex = FALSE))
                         
@@ -306,7 +307,8 @@ linkedBarMap <-
                                         values = sf_rx_all()[['Estimate']],
                                         labFormat = switch_labFrmt()
                                 ) %>%
-                                addLayersControl(overlayGroups = map_layers,
+                                addLayersControl(baseGroups = map_layers[[1]],
+                                                 overlayGroups = map_layers[[2]],
                                                  position = 'topright',
                                                  options = layersControlOptions(collapsed = FALSE,autoZIndex = FALSE))
                 })
@@ -525,6 +527,8 @@ linkedBarMap <-
                                        'People of Color' = root_file('1-data/1-notebooks/poc-desc.html'),
                                        'Housing Cost Burdened' = root_file('1-data/1-notebooks/hous-brdn-desc.html'),
                                        'Limited English' = root_file('1-data/1-notebooks/lmtd-eng-desc.html'),
+                                       'Foreign Born' = root_file('1-data/1-notebooks/frn-born-desc.html'),
+                                       'Unemployment' = root_file('1-data/1-notebooks/unemployed-desc.html'),
                                        stop("Unknown option")
                         )
                         includeHTML(file)

@@ -1,0 +1,13 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+url <- "http://nationalequityatlas.org/indicators/Contribution_to_growth%3A_Immigrants"
+```
+
+#####Why it matters
+Immigration is a significant driver of population growth nationwide, and in many distressed communities, new immigrants are fueling neighborhood revitalization and business growth. Policies that increase access to education, services, and living-wage jobs for immigrants, and remove barriers to their full and equal participation, will help communities thrive.
+
+Learn more: `r paste0("<a href=\"", url,"\"", "\ target=\"_blank", "\">", paste0("National Equity Atlas ",shiny::icon("external-link")), "</a>")`

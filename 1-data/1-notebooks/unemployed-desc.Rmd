@@ -1,0 +1,13 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+url <- "http://nationalequityatlas.org/indicators/Unemployment"
+```
+
+#####Why it matters
+In an equitable region, unemployment would be low and all workers would have similar success in finding work, regardless of race (or gender). Racial differences in employment result from differences in education, training, and experience as well as barriers to employment for workers of color such as English language ability, immigration status, criminal records, lack of transportation access, and racial discrimination and bias among employers and institutions. Policy and systems changes that remove these barriers and increase education and job training opportunities will lead to greater labor force participation and a stronger economy.
+
+Learn more: `r paste0("<a href=\"", url,"\"", "\ target=\"_blank", "\">", paste0("National Equity Atlas ",shiny::icon("external-link")), "</a>")`
